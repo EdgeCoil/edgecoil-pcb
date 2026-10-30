@@ -1,0 +1,31 @@
+{
+"name": "usb-c-power",
+"anchor": "J1",
+"ports": ["3V3", "GND", "USB_DN", "USB_DP", "VBUS"],
+"internal": ["CC1", "CC2"],
+"parts": [
+{"ref": "J1", "sym": "Connector:USB_C_Receptacle_USB2.0_16P", "fp": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12", "value": "USB-C", "pins": {"A1": "GND", "A4": "VBUS", "A5": "CC1", "A6": "USB_DP", "A7": "USB_DN", "A8": "", "A9": "VBUS", "A12": "GND", "B1": "GND", "B4": "VBUS", "B5": "CC2", "B6": "USB_DP", "B7": "USB_DN", "B8": "", "B9": "VBUS", "B12": "GND", "S1": "GND"}, "at": [0.0, 0.0], "rot": 0, "mpn": "HRO TYPE-C-31-M-12", "lcsc": "C165948", "side": "F"},
+{"ref": "R1", "sym": "Device:R", "fp": "Resistor_SMD:R_0603_1608Metric", "value": "5.1k", "pins": {"1": "CC1", "2": "GND"}, "at": [-1.0, -12.51], "rot": 90, "mpn": "", "lcsc": "C23186", "side": "F"},
+{"ref": "R2", "sym": "Device:R", "fp": "Resistor_SMD:R_0603_1608Metric", "value": "5.1k", "pins": {"1": "CC2", "2": "GND"}, "at": [1.0, -12.51], "rot": 90, "mpn": "", "lcsc": "C23186", "side": "F"},
+{"ref": "U2", "sym": "Power_Protection:SRV05-4", "fp": "Package_TO_SOT_SMD:SOT-23-6", "value": "SRV05-4", "pins": {"1": "USB_DP", "2": "GND", "3": "USB_DN", "4": "USB_DN", "5": "3V3", "6": "USB_DP"}, "at": [0.0, -8.41], "rot": 90, "mpn": "SRV05-4-P-T7", "lcsc": "C85364", "side": "F"}
+],
+"copper": [
+{"net": "3V3", "layer": "F.Cu", "start": [0, -10067400], "end": [0, -9547500], "w": 400000},
+{"net": "CC1", "layer": "F.Cu", "start": [-1250000, -5423000], "end": [-1250000, -4045000], "w": 250000},
+{"net": "CC1", "layer": "F.Cu", "start": [-2342900, -6515900], "end": [-1250000, -5423000], "w": 250000},
+{"net": "CC1", "layer": "B.Cu", "start": [-5335200, -9508200], "end": [-2342900, -6515900], "w": 250000},
+{"net": "CC1", "layer": "F.Cu", "start": [-1000000, -11685000], "end": [-2657300, -11685000], "w": 250000},
+{"net": "CC1", "layer": "F.Cu", "start": [-2657300, -11685000], "end": [-5335200, -14362900], "w": 250000},
+{"net": "CC1", "layer": "B.Cu", "start": [-5335200, -14362900], "end": [-5335200, -9508200], "w": 250000},
+{"net": "CC1", "via": [-2342900, -6515900], "d": 600000, "drill": 300000},
+{"net": "CC1", "via": [-5335200, -14362900], "d": 600000, "drill": 300000},
+{"net": "CC2", "layer": "F.Cu", "start": [1750000, -10935000], "end": [1000000, -11685000], "w": 250000},
+{"net": "CC2", "layer": "F.Cu", "start": [1750000, -4045000], "end": [1750000, -10935000], "w": 250000},
+{"net": "GND", "layer": "F.Cu", "start": [-3405000, -4045000], "end": [-3250000, -4045000], "w": 250000},
+{"net": "GND", "layer": "F.Cu", "start": [-4320000, -3130000], "end": [-3405000, -4045000], "w": 250000},
+{"net": "GND", "layer": "F.Cu", "start": [3405000, -4045000], "end": [3250000, -4045000], "w": 250000},
+{"net": "GND", "layer": "F.Cu", "start": [4320000, -3130000], "end": [3405000, -4045000], "w": 250000},
+{"net": "USB_DN", "layer": "F.Cu", "start": [950000, -7272500], "end": [950000, -9547500], "w": 250000},
+{"net": "USB_DP", "layer": "F.Cu", "start": [-950000, -7272500], "end": [-950000, -9547500], "w": 250000}
+]
+}

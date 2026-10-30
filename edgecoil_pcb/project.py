@@ -25,7 +25,7 @@ def write_project(cfg, name, path):
             "rule_severities": {"silk_overlap": "ignore", "silk_over_copper": "ignore",
                                 "silk_edge_clearance": "ignore", "lib_footprint_mismatch": "ignore",
                                 "lib_footprint_issues": "ignore", "text_height": "ignore",
-                                "courtyards_overlap": "error"},
+                                "courtyards_overlap": "error", **cfg.rule_severities},
             "track_widths": [0.0, 0.25, 0.5], "via_dimensions": [{"diameter": 0.0, "drill": 0.0},
                                                                    {"diameter": 0.6, "drill": 0.3}],
         }},

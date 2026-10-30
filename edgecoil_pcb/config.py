@@ -42,6 +42,7 @@ class Config:
 
     # Board.
     power_nets: tuple = ("VBUS", "3V3")    # the wide "Power" net class
+    rule_severities: dict = field(default_factory=dict)  # DRC rule -> severity, over the project's defaults
     back_text: Optional[Callable] = None   # (variant, w, h) -> [(x, y, text, size)]
     board_hooks: tuple = ()                # functions (board) run after the shell keepouts
     block_copper: list = field(default_factory=list)  # placed blocks' copper (Block.copper), laid locked

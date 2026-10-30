@@ -39,6 +39,7 @@ PROVENANCE = {
     "C295747": V, "C318884": V, "C32574": V, "C435835": V, "C45783": V, "C492401": V, "C82045": V, "C841192": V,
     "C84256": V, "C85364": V, "C91447": V,
     ("C435835", "SOT-223-3_TabPin2"): V,
+    "C54582899": V,  # XYECONN XY-S2B-PH-SM4-TB, JST PH 2-pin SMD (C295747 ran out at JLC, 2026-10-30)
 }
 
 

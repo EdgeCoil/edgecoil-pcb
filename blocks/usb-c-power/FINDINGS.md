@@ -22,8 +22,8 @@ did).
 
 - **The toolkit, not the block, lays the D+/D− crossover under the receptacle and the VBUS pad joins**
   (locked, on any `Connector_USB:` footprint), and keeps tracks off the shell.
-- **Keep the ESD array's reference U2.** The toolkit's `esd_ground` adds its ground via by reference,
-  `U2`; under another reference that via is not laid. (To fix in the toolkit: make it a property of
-  the block.)
+- **Give the ESD array its ground via**: the block lists it (`"esd_ground": ["U2"]`), so add
+  `block.board_refs("esd_ground", refs)` to `Config.esd_refs`. Without it the via under U2's ground pin,
+  which sits between two signal pins where the pour can't reach, is not laid.
 - **Bulk capacitance on VBUS is not in this block**: on the source board it is the `ldo-ldl1117`
   block's C1.

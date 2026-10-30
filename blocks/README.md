@@ -30,11 +30,17 @@ CFG.block_copper += core.copper((14.0, 6.8), rot=0, nets=nets)
 
 `refs` gives board references (default: the block's own, prefixed by `prefix=`); internal nets are
 prefixed the same way, so two instances don't merge. The copper is laid locked, and `route.py
---freeze` leaves locked copper out of `routing.json`.
+--freeze` leaves locked copper out of `routing.json`. Also:
+
+```python
+CFG.esd_refs += usb.board_refs("esd_ground", refs)   # parts that need esd_ground's via
+CFG.toolkit_libs = ("ec",)                           # the ldo block's part lives there
+```
 
 **Keep parts out of a block's copper extent** (given in its FINDINGS): the frozen tracks run there.
-**Order matters for silk**: the toolkit's silk clean-up and label placement break ties in the
-order parts are listed, so keep a block's parts where they were when proving a board identical.
+**Part order doesn't matter** with the default `order_free_silk=True`: the board came out identical
+from the parts list shuffled three ways and reversed (it differed in 14 silk and label lines without
+it). Boards built before it (`order_free_silk=False`) must keep their parts in order.
 
 ## How these were cut, and checked
 

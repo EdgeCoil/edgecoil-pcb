@@ -3,6 +3,7 @@
 "anchor": "J1",
 "ports": ["3V3", "GND", "USB_DN", "USB_DP", "VBUS"],
 "internal": ["CC1", "CC2"],
+"esd_ground": ["U2"],
 "parts": [
 {"ref": "J1", "sym": "Connector:USB_C_Receptacle_USB2.0_16P", "fp": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12", "value": "USB-C", "pins": {"A1": "GND", "A4": "VBUS", "A5": "CC1", "A6": "USB_DP", "A7": "USB_DN", "A8": "", "A9": "VBUS", "A12": "GND", "B1": "GND", "B4": "VBUS", "B5": "CC2", "B6": "USB_DP", "B7": "USB_DN", "B8": "", "B9": "VBUS", "B12": "GND", "S1": "GND"}, "at": [0.0, 0.0], "rot": 0, "mpn": "HRO TYPE-C-31-M-12", "lcsc": "C165948", "side": "F"},
 {"ref": "R1", "sym": "Device:R", "fp": "Resistor_SMD:R_0603_1608Metric", "value": "5.1k", "pins": {"1": "CC1", "2": "GND"}, "at": [-1.0, -12.51], "rot": 90, "mpn": "", "lcsc": "C23186", "side": "F"},

@@ -18,6 +18,6 @@ Anchor U5. **Copper extent: x −2.3 … 0.0 mm, y −7.0 … 6.7 mm** from U5.
   DC-biased ESR, against ST's stability region (DS12022 Fig. 20/21: 1–22 µF nominal, ESR at 100 kHz
   between about 0.012–0.02 Ω and 10 Ω). The behavioural LDO model is fitted to transients and cannot
   predict phase margin, so this is a comparison, not a proof: **scope 3V3 at bring-up**.
-- **The parts come from a board-local library**, `cb` (LDL1117S33R symbol and its LCSC SOT-223-4
-  footprint, from easyeda2kicad). The toolkit does not ship it yet: a board using this block must
-  supply that library until it does.
+- **U5's symbol, footprint and 3D model are in the toolkit's library `ec`** (`edgecoil_pcb/lib/`,
+  from the JLCEDA/EasyEDA library, credited in its README): set `Config(toolkit_libs=("ec",))`. A board
+  that has its own copy of the same part can map it: `parts(..., libs={"ec": "<its nickname>"})`.

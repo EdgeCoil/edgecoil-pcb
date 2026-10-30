@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 edgecoil
-# SPDX-License-Identifier: CERN-OHL-S-2.0
+# SPDX-License-Identifier: MIT
 """Circuit blocks: parts with their reviewed copper, placed on a board as one piece.
 
 A block is a directory under blocks/ holding block.json (parts in the block's own frame, its ports,

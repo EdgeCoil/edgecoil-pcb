@@ -36,7 +36,11 @@ board: so the toolkit ships no third-party library, and so the input capacitor s
   1.2 V out) with ESR at 100 kHz from a floor of about 0.02 Ω at 1 µF falling to about 0.012 Ω at 22 µF,
   up to 10 Ω (about 5 Ω at 1.2 V out). Here:
   - **ESR below the floor**: C4 (22 µF X5R 0805, CL21A226MAQ) is about 4.7 mΩ at 100 kHz, DC-biased
-    (Samsung's data, as in `model.inc`), against ~0.012 Ω. Its 2.3 mm track adds only milliohms.
+    (Samsung's data, as in `model.inc`), against ~0.012 Ω. On the source board the copper to C4
+    (about 5 mΩ) and on to C5 and the module was what brought the effective ESR into ST's range
+    (its check `s3`). **This block put C4 right at the tab**, as the review asked, so most of that
+    copper is gone and its effective ESR sits lower than the source board's: the input-capacitor fix
+    made this risk somewhat worse.
   - **Capacitance above 22 µF** once a board adds the module's own 10 µF and the C3 block's C5 10 µF:
     about 42 µF nominal on the rail.
   The plot shows where ST characterised the part as stable, not where it is unstable, and the

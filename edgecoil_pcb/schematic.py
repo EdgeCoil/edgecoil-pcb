@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 """The schematic, written from the same netlist as the board: one symbol per part in a grid, a
 global label on every pin, so KiCad's parity check compares the two."""
+import sys
+
 from .symbols import lib_symbol
 
 
@@ -14,6 +16,12 @@ def write_schematic(cfg, name, parts, path):
     sheet_w, sheet_h = cfg.sheet()
     bottom = cfg.sheet_bottom if cfg.sheet_bottom is not None else sheet_h - 20
     root = uid(name, "root")
+
+    def on_sheet(ok, msg):
+        if not ok:
+            if not cfg.off_sheet_ok:
+                raise SystemExit(f"{name}: {msg}")
+            print(f"{name}: {msg}", file=sys.stderr)
     used = {}
     for p in parts:
         if p.sym:
@@ -86,7 +94,7 @@ def write_schematic(cfg, name, parts, path):
         out.append(instance(p.sym, p.ref, p.value, p.fp, x, cy, pins, extra))
         out += labels(x, cy, pins, p.pins)
         y += cell_h
-        assert x + 40 < sheet_w - 10 and cy + span < sheet_h - 10, f"{p.ref} drawn off the {cfg.paper} sheet at ({x}, {cy})"
+        on_sheet(x + 40 < sheet_w - 10 and cy + span < sheet_h - 10, f"{p.ref} drawn off the {cfg.paper} sheet at ({x}, {cy})")
     # PWR_FLAGs on the supply nets, so ERC knows they are driven.
     # (Not on nets a power-output pin already drives: the charger's VBAT and the regulator's 3V3.)
     driven = {"3V3", "VBAT"} if "VBUS" in {n for p in parts for n in p.pins.values()} else set()
@@ -94,7 +102,7 @@ def write_schematic(cfg, name, parts, path):
     _, fpins = used["power:PWR_FLAG"]
     for i, net in enumerate(supplies):
         fx, fy = (cfg.flag_x if cfg.flag_x is not None else x + 76.2), 50.8 + i * 15.24
-        assert fx + 10 < sheet_w - 10 and fy < sheet_h - 10, f"PWR_FLAG {net} drawn off the {cfg.paper} sheet at ({fx}, {fy})"
+        on_sheet(fx + 10 < sheet_w - 10 and fy < sheet_h - 10, f"PWR_FLAG {net} drawn off the {cfg.paper} sheet at ({fx}, {fy})")
         out.append(instance("power:PWR_FLAG", f"#FLG0{i + 1}", "PWR_FLAG", "", fx, fy, fpins))
         out += labels(fx, fy, fpins, {"1": net})
     out.append(f'\t(sheet_instances\n\t\t(path "/"\n\t\t\t(page "1")\n\t\t)\n\t)\n\t(embedded_fonts no)\n)')

@@ -38,6 +38,7 @@ class Config:
     comment: str = ""                      # title block comment 1
     instance_project: Optional[Callable] = None  # variant -> project name in symbol instances
     hide_ic_values: bool = True            # U* values hidden on the sheet (audit: printed over pin names)
+    off_sheet_ok: bool = False             # only warn, not stop, for a symbol drawn past the sheet's edge
 
     # Board.
     power_nets: tuple = ("VBUS", "3V3")    # the wide "Power" net class
@@ -49,6 +50,9 @@ class Config:
     labels_avoid_marks: bool = True        # labels keep off footprints' own silk marks
     labels_avoid_own_outline: bool = True  # and off their own part's outline
     keycap: float = 18.0                   # a 1u MX keycap's square, which labels keep out of
+    # Routing replay: refuse redundant segments and joints made only by overlapping copper
+    # (cec-bridge audit rounds 16-17). Off, they are only reported.
+    replay_checks: bool = True
 
     def base(self, variant):
         return os.path.join(self.here, variant, f"{self.file_prefix}{variant}")

@@ -25,8 +25,14 @@ UUIDs, item order), so a port is proven by a canonical dump instead:
     python3 -m edgecoil_pcb.canon committed.kicad_pcb rebuilt.kicad_pcb
 
 It exits 0 and prints `identical` only if every footprint, pad, field, track, via, drawing, zone
-outline and fill, design rule and the stackup match. Keep the `.kicad_pro` beside each board: the
-design rules are read from it.
+outline, design rule and the stackup match as text, and every zone fill matches as geometry (the
+area of the two fills' symmetric difference under 0.001 mm²: KiCad's fill can differ run to run by
+a degenerate vertex with the same copper). Keep the `.kicad_pro` beside each board: the design
+rules are read from it. Negative controls it fails, as it should: a via moved 1 µm, a resistor's
+value, the mask colour, a 0.25 mm² notch in a pour.
+
+Ported so far, each identical to its committed board: cec-bridge, tune-button xiao, c3, c3-jst
+and the three-board panel.
 
 ## Routing and assembly files
 

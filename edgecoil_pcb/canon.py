@@ -8,13 +8,17 @@ UUIDs, item order, timestamps), so a port is proven by comparing these dumps ins
     python3 -m edgecoil_pcb.canon a.kicad_pcb b.kicad_pcb    exit 0 if identical, else a diff
     python3 -m edgecoil_pcb.canon a.kicad_pcb                print the dump
 
-Coordinates are integer nanometres. Footprints are keyed by reference, copper and drawings are
-sorted, zone fills are compared polygon by polygon.
+Coordinates are integer nanometres. Footprints, copper and drawings are sorted. Zone fills are the
+one thing compared by geometry, not text: KiCad's fill can differ run to run by a vertex (a collinear
+point, a 0.4 mm sliver edge) with the same area (the tune-button panel did, built twice unchanged),
+so two fills match when the area of their symmetric difference is under FILL_XOR.
 """
 import difflib
 import sys
 
 import pcbnew
+
+FILL_XOR = 0.001  # mm2, per zone and layer; two unchanged builds of the tune-button panel measured 0.0
 
 
 def _xy(p):
@@ -55,16 +59,27 @@ def _text(t, origin=""):
             f"just{t.GetHorizJustify()},{t.GetVertJustify()}")
 
 
+def _ring(chain):
+    """A closed chain's vertices from its smallest one, in one direction: the same polygon can come
+    back from a fill starting anywhere round it (the tune-button panel's did, run to run)."""
+    pts = [(chain.CPoint(j).x, chain.CPoint(j).y) for j in range(chain.PointCount())]
+    if len(pts) > 1 and pts[0] == pts[-1]:
+        pts = pts[:-1]
+    if not pts:
+        return ""
+    best = None
+    for seq in (pts, pts[::-1]):
+        k = seq.index(min(seq))
+        cand = seq[k:] + seq[:k]
+        best = cand if best is None or cand < best else best
+    return " ".join(f"{x},{y}" for x, y in best)
+
+
 def _polyset(ps):
     out = []
     for i in range(ps.OutlineCount()):
-        outline = ps.Outline(i)
-        pts = [_xy(outline.CPoint(j)) for j in range(outline.PointCount())]
-        holes = []
-        for h in range(ps.HoleCount(i)):
-            hole = ps.Hole(i, h)
-            holes.append(" ".join(_xy(hole.CPoint(j)) for j in range(hole.PointCount())))
-        out.append(" ".join(pts) + "".join(f" | {h}" for h in sorted(holes)))
+        holes = sorted(_ring(ps.Hole(i, h)) for h in range(ps.HoleCount(i)))
+        out.append(_ring(ps.Outline(i)) + "".join(f" | {h}" for h in holes))
     return sorted(out)
 
 
@@ -83,7 +98,9 @@ def _stackup(path):
     return ["stackup " + " ".join(text[i:j].split())]
 
 
-def dump(path):
+def dump(path, fills=None):
+    """The canonical lines. With `fills` (a dict), zone fills are left out of the text and collected
+    there by (zone, layer) for compare()."""
     board = pcbnew.LoadBoard(path)
     lines = _stackup(path)
     ds = board.GetDesignSettings()
@@ -94,19 +111,23 @@ def dump(path):
         if hasattr(ds, name):
             lines.append(f"rule {name} {getattr(ds, name)}")
 
-    for fp in sorted(board.GetFootprints(), key=lambda f: f.GetReference()):
+    # Each footprint is one block, the blocks sorted: a panel repeats references (every board has a
+    # C1), so the reference alone doesn't fix an order.
+    blocks = []
+    for fp in board.GetFootprints():
         ref = fp.GetReference()
         o = f"fp {ref} "
-        lines.append(f"{o}id {fp.GetFPIDAsString()} value {fp.GetValue()!r} side {fp.GetLayerName()} "
+        out = []
+        out.append(f"{o}id {fp.GetFPIDAsString()} value {fp.GetValue()!r} side {fp.GetLayerName()} "
                      f"at {_xy(fp.GetPosition())} rot{fp.GetOrientationDegrees():g} attrs{fp.GetAttributes()}")
         for field in sorted(fp.GetFields(), key=lambda f: f.GetName()):
             if field.GetName() in ("Reference", "Value"):
-                lines.append(_text(field, f"{o}field {field.GetName()} "))
+                out.append(_text(field, f"{o}field {field.GetName()} "))
             elif field.GetText():
-                lines.append(f"{o}field {field.GetName()} {field.GetText()!r}")
+                out.append(f"{o}field {field.GetName()} {field.GetText()!r}")
         for pad in sorted(fp.Pads(), key=lambda p: (p.GetNumber(), p.GetPosition().x, p.GetPosition().y)):
             d = pad.GetDrillSize()
-            lines.append(f"{o}pad {pad.GetNumber()} net {pad.GetNetname()!r} at {_xy(pad.GetPosition())} "
+            out.append(f"{o}pad {pad.GetNumber()} net {pad.GetNetname()!r} at {_xy(pad.GetPosition())} "
                          f"size{_xy(pad.GetSize(pcbnew.F_Cu))} shape{pad.GetShape(pcbnew.F_Cu)} "
                          f"rot{pad.GetOrientationDegrees():g} drill{_xy(d)} attr{pad.GetAttribute()} "
                          f"layers {_layers(pad.GetLayerSet())}")
@@ -116,9 +137,12 @@ def dump(path):
                 items.append(_shape(g, o))
             elif isinstance(g, pcbnew.PCB_TEXT):
                 items.append(_text(g, o))
-        lines += sorted(items)
+        out += sorted(items)
         for m in fp.Models():
-            lines.append(f"{o}model {m.m_Filename} show{int(m.m_Show)}")
+            out.append(f"{o}model {m.m_Filename} show{int(m.m_Show)}")
+        blocks.append(out)
+    for out in sorted(blocks):
+        lines += out
 
     copper = []
     for t in board.GetTracks():
@@ -154,26 +178,55 @@ def dump(path):
                      f"pads{int(z.GetDoNotAllowPads())} fp{int(z.GetDoNotAllowFootprints())} "
                      f"pour{int(z.GetDoNotAllowCopperPour())}")
         block = [head] + [f"  outline {p}" for p in _polyset(z.Outline())]
-        for layer in z.GetLayerSet().Seq():
-            if z.HasFilledPolysForLayer(layer):
-                for p in _polyset(z.GetFilledPolysList(layer)):
-                    block.append(f"  fill {pcbnew.BOARD.GetStandardLayerName(layer)} {p}")
+        if fills is None:
+            for layer in z.GetLayerSet().Seq():
+                if z.HasFilledPolysForLayer(layer):
+                    for p in _polyset(z.GetFilledPolysList(layer)):
+                        block.append(f"  fill {pcbnew.BOARD.GetStandardLayerName(layer)} {p}")
+        else:
+            for layer in z.GetLayerSet().Seq():
+                if z.HasFilledPolysForLayer(layer):
+                    key = (head, pcbnew.BOARD.GetStandardLayerName(layer))
+                    fills.setdefault(key, pcbnew.SHAPE_POLY_SET()).Append(z.GetFilledPolysList(layer))
+                    block.append(f"  fill {key[1]} (compared by geometry)")
         zones.append("\n".join(block))
     lines += sorted(zones)
-    return lines
+    return lines, board
+
+
+def compare(pa, pb):
+    """(text diff lines, fill mismatches). Both empty means the boards are the same."""
+    fa, fb = {}, {}
+    (a, _ba), (b, _bb) = dump(pa, fa), dump(pb, fb)  # keep the boards alive while their polygons are used
+    diff = list(difflib.unified_diff(a, b, pa, pb, n=0, lineterm="")) if a != b else []
+    bad = []
+    for key in sorted(set(fa) | set(fb)):
+        if key not in fa or key not in fb:
+            bad.append(f"{key[1]} fill of {key[0]!r} only in {'the second' if key in fb else 'the first'}")
+            continue
+        # KiCad stores fills fractured (holes joined to the outline by zero-width bridges); booleans
+        # want them whole.
+        pa_, pb_ = pcbnew.SHAPE_POLY_SET(fa[key]), pcbnew.SHAPE_POLY_SET(fb[key])
+        pa_.Unfracture(); pb_.Unfracture()
+        x = pcbnew.SHAPE_POLY_SET(pa_)
+        x.BooleanXor(pb_)
+        area = x.Area() / 1e12
+        if area > FILL_XOR:
+            bad.append(f"{key[1]} fill of {key[0]!r} differs by {area:.4f} mm2")
+    return diff, bad, len(a), len(fa)
 
 
 def main(argv):
     if len(argv) == 1:
-        print("\n".join(dump(argv[0])))
+        print("\n".join(dump(argv[0])[0]))
         return 0
     if len(argv) != 2:
         raise SystemExit(__doc__)
-    a, b = dump(argv[0]), dump(argv[1])
-    if a == b:
-        print(f"identical: {len(a)} canonical lines")
+    diff, bad, n, nf = compare(*argv)
+    if not diff and not bad:
+        print(f"identical: {n} canonical lines, {nf} zone fills to {FILL_XOR} mm2")
         return 0
-    sys.stdout.writelines(l + "\n" for l in difflib.unified_diff(a, b, argv[0], argv[1], n=0, lineterm=""))
+    sys.stdout.writelines(l + "\n" for l in diff + bad)
     return 1
 
 

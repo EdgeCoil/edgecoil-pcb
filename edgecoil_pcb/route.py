@@ -434,8 +434,12 @@ def replay(cfg, name):
     path = cfg.base(name) + ".kicad_pcb"
     board = pcbnew.LoadBoard(path)
     items = json.load(open(routing_file(cfg, name)))
+    def refuse(msg):
+        if cfg.replay_checks:
+            raise SystemExit(f"{name}: {msg}")
+        print(f"{name}: {msg} (replay_checks off: kept)", file=sys.stderr)
     if redundant(items):
-        raise SystemExit(f"{name}: routing.json has redundant segments: {redundant(items)}")
+        refuse(f"routing.json has redundant segments: {redundant(items)}")
     for i in items:
         net = board.FindNet(i["net"])
         if "via" in i:
@@ -450,7 +454,7 @@ def replay(cfg, name):
         board.Add(t)
     # The autoroute rejects attempts that break these; a hand edit has to meet them too.
     if cap_joints(board):
-        raise SystemExit(f"{name}: track ends joined only by overlapping copper: {cap_joints(board)}")
+        refuse(f"track ends joined only by overlapping copper: {cap_joints(board)}")
     lost, crowded = lost_pour(board), crowded_pins(board)
     if lost > LOST_POUR or crowded:
         raise SystemExit(f"{name}: routing.json loses {lost:.1f} mm2 of back pour; pins crowded: {crowded or 'none'}")

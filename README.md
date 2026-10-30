@@ -37,7 +37,7 @@ and the three-board panel.
 ## Composing from blocks
 
 `blocks/` holds circuit blocks: parts with their reviewed copper, a SPICE subcircuit and findings
-(see its README). `edgecoil_pcb/lib/` is the library for parts KiCad lacks (`Config.toolkit_libs`).
+(see its README). They use only KiCad's stock libraries.
 
 ## Routing and assembly files
 
@@ -59,6 +59,6 @@ without one.
 
 ## Licences
 
-Code: MIT. Circuit blocks: CERN-OHL-S-2.0. `edgecoil_pcb/lib/` holds parts from the JLCEDA/EasyEDA
-official library (https://lceda.cn/, https://easyeda.com), which remain theirs: see its README. The toolkit ships no logo; a board passes its own mark
+Code: MIT. Circuit blocks: CERN-OHL-S-2.0. The blocks use KiCad's own symbol and footprint libraries
+only. The toolkit ships no logo; a board passes its own mark
 (`Config.logo_svg`).

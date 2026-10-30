@@ -8,7 +8,7 @@ joins block to block, so a new board's review covers the joins and whatever is n
 |---|---|---|---|---|---|
 | [`esp32-c3-wroom-02`](esp32-c3-wroom-02/) | U1 | U1 module, C5, EN RC (R6, C6), IO8/IO2 pull-ups (R7, R9), RESET/BOOT (SW1, SW2) | 47 items, 3 vias | 3V3, GND, IO0, IO1, IO4, IO5, IO6, IO10, RXD, TXD, USB_DN, USB_DP (IO3, IO7 optional) | EN, IO2, IO8, IO9 |
 | [`usb-c-power`](usb-c-power/) | J1 | J1 HRO TYPE-C-31-M-12, CC pull-downs (R1, R2), SRV05-4 ESD (U2) | 17 items, 2 vias | 3V3, GND, USB_DN, USB_DP, VBUS | CC1, CC2 |
-| [`ldo-ldl1117`](ldo-ldl1117/) | U5 | U5 LDL1117S33R, C1 10u in, C4 22u out | 8 items | 3V3, GND, VBUS | — |
+| [`ldo-ldl1117`](ldo-ldl1117/) | U5 | U5 LDL1117S33R (KiCad stock SOT-223), C1 10u at VIN, C4 22u at the tab | 3 items | 3V3, GND, VBUS | — |
 
 Each directory holds:
 
@@ -34,7 +34,6 @@ prefixed the same way, so two instances don't merge. The copper is laid locked, 
 
 ```python
 CFG.esd_refs += usb.board_refs("esd_ground", refs)   # parts that need esd_ground's via
-CFG.toolkit_libs = ("ec",)                           # the ldo block's part lives there
 ```
 
 **Keep parts out of a block's copper extent** (given in its FINDINGS): the frozen tracks run there.
@@ -47,15 +46,22 @@ it). Boards built before it (`order_free_silk=False`) must keep their parts in o
 `edgecoil_pcb.blocks.cut` takes the parts by reference from a reviewed board and splits its frozen
 routing: every item on an internal net, and on each port net the copper joining the block's own
 pads (cut where it reaches another part's pad, dead ends pruned until none is left). The rest stays
-with the board. Then three checks, all repeatable:
+with the board. **`esp32-c3-wroom-02` and `usb-c-power` are such cuts; `ldo-ldl1117` is not**: it was
+cut, then moved to KiCad's stock parts and laid out again with its input capacitor at the input, after
+an independent review (see its FINDINGS). The checks, all repeatable:
 
-1. **The source board rebuilt from these blocks plus the remaining 396 routing items is
-   canonically identical to the committed board** (1680 lines, 5 zone fills; schematic, BOM, CPL and
-   pos byte-identical).
+1. **The source board rebuilt from the two cut blocks plus its remaining routing is canonically
+   identical to the committed board** (1680 lines, 5 zone fills; schematic, BOM, CPL and pos
+   byte-identical); before the LDO's rework, so was the board from all three.
 2. **`python3 -m edgecoil_pcb.blocks selftest <dir>`** places the block alone at 0, 90, 180 and 270
    degrees and checks every internal net is one connected piece and every copper item reaches a pad.
    It fails, as it should, on copper turned the wrong way, a track moved 1 mm and a track deleted.
-3. **`python3 tests/check_models.py`** runs each `model.inc` against the same parts written flat, as
+3. **`python3 tests/drc_block.py <dir>`** builds the block alone into a board through the toolkit
+   (real rules and pours) and runs KiCad's DRC: anything but a lone block's dangling ports fails it,
+   ground included. It fails, as it should, on a clearance cut to 0.05 mm and an overlapping courtyard.
+   The build itself refuses copper KiCad would rename on save (a track touching only another net's pad
+   silently becomes that net: found here by a planted track DRC never saw).
+4. **`python3 tests/check_models.py`** runs each `model.inc` against the same parts written flat, as
    in the board simulation the device models were validated in: they agree to 1e-12. It fails, as it
    should, on R6 10k → 11k and C4 22u → 10u. This checks wiring and parameters; the physics was
    validated in that simulation (behavioural models fitted to guaranteed datasheet figures, 144

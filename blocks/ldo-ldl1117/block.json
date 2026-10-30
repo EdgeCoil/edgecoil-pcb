@@ -3,20 +3,14 @@
 "anchor": "U5",
 "ports": ["3V3", "GND", "VBUS"],
 "internal": [],
-"toolkit_libs": ["ec"],
 "parts": [
-{"ref": "U5", "sym": "ec:LDL1117S33R", "fp": "ec:SOT-223-4_L6.5-W3.5-P2.30-LS7.0-BR", "value": "LDL1117S33R", "pins": {"1": "GND", "2": "3V3", "3": "VBUS", "4": "3V3"}, "at": [0.0, 0.0], "rot": 90, "mpn": "LDL1117S33R", "lcsc": "C435835", "side": "F"},
-{"ref": "C1", "sym": "Device:C", "fp": "Capacitor_SMD:C_0805_2012Metric", "value": "10u", "pins": {"1": "VBUS", "2": "GND"}, "at": [0.0, 6.7], "rot": 0, "mpn": "", "lcsc": "C15850", "side": "F"},
-{"ref": "C4", "sym": "Device:C", "fp": "Capacitor_SMD:C_0805_2012Metric", "value": "22u", "pins": {"1": "3V3", "2": "GND"}, "at": [0.5, -7.0], "rot": 0, "mpn": "", "lcsc": "C45783", "side": "F"}
+{"ref": "U5", "sym": "Regulator_Linear:LD1117S33TR_SOT223", "fp": "Package_TO_SOT_SMD:SOT-223-3_TabPin2", "value": "LDL1117S33R", "pins": {"1": "GND", "2": "3V3", "3": "VBUS"}, "at": [0.0, 0.0], "rot": 270, "mpn": "LDL1117S33R", "lcsc": "C435835", "side": "F"},
+{"ref": "C1", "sym": "Device:C", "fp": "Capacitor_SMD:C_0805_2012Metric", "value": "10u", "pins": {"1": "VBUS", "2": "GND"}, "at": [-4.65, -4.1], "rot": 90, "mpn": "", "lcsc": "C15850", "side": "F"},
+{"ref": "C4", "sym": "Device:C", "fp": "Capacitor_SMD:C_0805_2012Metric", "value": "22u", "pins": {"1": "3V3", "2": "GND"}, "at": [0.95, 5.45], "rot": 0, "mpn": "", "lcsc": "C45783", "side": "F"}
 ],
 "copper": [
-{"net": "3V3", "layer": "F.Cu", "start": [0, -4466700], "end": [-450000, -4916700], "w": 400000},
-{"net": "3V3", "layer": "F.Cu", "start": [-450000, -4916700], "end": [-450000, -7000000], "w": 400000},
-{"net": "3V3", "layer": "F.Cu", "start": [0, 2830000], "end": [0, -2830000], "w": 400000},
-{"net": "3V3", "layer": "F.Cu", "start": [0, -2830000], "end": [0, -4246900], "w": 400000},
-{"net": "3V3", "layer": "F.Cu", "start": [0, -4246900], "end": [0, -4466700], "w": 400000},
-{"net": "VBUS", "layer": "F.Cu", "start": [-2300000, 5350000], "end": [-2300000, -2830000], "w": 400000},
-{"net": "VBUS", "layer": "F.Cu", "start": [-2300000, -2830000], "end": [-2300000, -3165000], "w": 400000},
-{"net": "VBUS", "layer": "F.Cu", "start": [-950000, 6700000], "end": [-2300000, 5350000], "w": 400000}
+{"net": "3V3", "layer": "F.Cu", "start": [0, 3150000], "end": [0, -3150000], "w": 400000},
+{"net": "3V3", "layer": "F.Cu", "start": [0, 3150000], "end": [0, 5450000], "w": 400000},
+{"net": "VBUS", "layer": "F.Cu", "start": [-2300000, -3150000], "end": [-4650000, -3150000], "w": 400000}
 ]
 }

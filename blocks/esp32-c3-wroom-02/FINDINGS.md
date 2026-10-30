@@ -10,7 +10,7 @@ Anchor U1 (the module's origin). **Copper extent: x −13.3 … 12.2 mm, y −6.
 - **C5 10u at the module's 3V3 pin**, because the regulator's 22u may be far away (46 mm of track on
   the source board).
 - **Wi-Fi bursts** (345 mA TX peak, 84 mA RX shoulder, datasheet Table 6-4): on the source board, with
-  the `ldo-ldl1117` block and its copper, 3V3 bottomed at **3.149 V** worst case (4.75 V charger, 0.3 m
+  its LDL1117 stage and copper (the `ldo-ldl1117` block's layout has since changed), 3V3 bottomed at **3.149 V** worst case (4.75 V charger, 0.3 m
   cable, LDO at −3 % and maximum dropout, low capacitors; limit 3.0 V, +0.149 V).
 
 ## The board's job

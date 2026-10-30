@@ -28,6 +28,24 @@ It exits 0 and prints `identical` only if every footprint, pad, field, track, vi
 outline and fill, design rule and the stackup match. Keep the `.kicad_pro` beside each board: the
 design rules are read from it.
 
+## Routing and assembly files
+
+A board's `route.py` is three lines: `from edgecoil_pcb.route import cli; from gen import CFG; cli(CFG, argv)`.
+It replays `<variant>/routing.json` if there is one (refusing redundant segments, joints made only
+by overlapping copper, and lost back pour), autoroutes with Freerouting if not, and `--patch`
+reroutes only a ripped box.
+
+`python3 -m edgecoil_pcb.jlc` writes JLCPCB's BOM and CPL. Its rotation and offset table is
+checked against JLC's own footprints by
+
+    python3 -m edgecoil_pcb.jlc_verify board.kicad_pcb [...]
+
+which places each LCSC part's EasyEDA footprint as the CPL would and checks every pad lands on
+KiCad's: by number, or by anode/cathode where the libraries number them differently; centred to
+0.05 mm (or 5 % of the pad along that axis); and with no other rotation passing as well. It caught
+nine of nine planted errors. `jlc.PROVENANCE` records each check; the build warns about any part
+without one.
+
 ## Licences
 
 Code: MIT. Circuit blocks: CERN-OHL-S-2.0. The toolkit ships no logo; a board passes its own mark

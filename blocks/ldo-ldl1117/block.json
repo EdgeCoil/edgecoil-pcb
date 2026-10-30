@@ -2,15 +2,17 @@
 "name": "ldo-ldl1117",
 "anchor": "U5",
 "ports": ["3V3", "GND", "VBUS"],
-"internal": [],
+"internal": ["C4_ESR"],
 "parts": [
 {"ref": "U5", "sym": "Regulator_Linear:LD1117S33TR_SOT223", "fp": "Package_TO_SOT_SMD:SOT-223-3_TabPin2", "value": "LDL1117S33R", "pins": {"1": "GND", "2": "3V3", "3": "VBUS"}, "at": [0.0, 0.0], "rot": 270, "mpn": "LDL1117S33R", "lcsc": "C435835", "side": "F"},
 {"ref": "C1", "sym": "Device:C", "fp": "Capacitor_SMD:C_0805_2012Metric", "value": "10u", "pins": {"1": "VBUS", "2": "GND"}, "at": [-4.65, -4.1], "rot": 90, "mpn": "", "lcsc": "C15850", "side": "F"},
-{"ref": "C4", "sym": "Device:C", "fp": "Capacitor_SMD:C_0805_2012Metric", "value": "22u", "pins": {"1": "3V3", "2": "GND"}, "at": [0.95, 5.45], "rot": 0, "mpn": "", "lcsc": "C45783", "side": "F"}
+{"ref": "C4", "sym": "Device:C", "fp": "Capacitor_SMD:C_0805_2012Metric", "value": "22u", "pins": {"1": "3V3", "2": "C4_ESR"}, "at": [0.95, 5.45], "rot": 0, "mpn": "", "lcsc": "C45783", "side": "F"},
+{"ref": "R25", "sym": "Device:R", "fp": "Resistor_SMD:R_0603_1608Metric", "value": "0", "pins": {"1": "C4_ESR", "2": "GND"}, "at": [4.15, 5.45], "rot": 0, "mpn": "0603WAF0000T5E", "lcsc": "C21189", "side": "F"}
 ],
 "copper": [
 {"net": "3V3", "layer": "F.Cu", "start": [0, 3150000], "end": [0, -3150000], "w": 400000},
 {"net": "3V3", "layer": "F.Cu", "start": [0, 3150000], "end": [0, 5450000], "w": 400000},
+{"net": "C4_ESR", "layer": "F.Cu", "start": [1900000, 5450000], "end": [3325000, 5450000], "w": 400000},
 {"net": "VBUS", "layer": "F.Cu", "start": [-2300000, -3150000], "end": [-4650000, -3150000], "w": 400000}
 ]
 }

@@ -1,6 +1,7 @@
 # ldo-ldl1117: findings and what the board must do
 
-Anchor U5. **Copper extent: x −4.65 … 0.0 mm, y −3.15 … 5.45 mm** from U5 (three tracks).
+Anchor U5. **Copper extent: x −4.65 … 3.325 mm, y −3.15 … 5.45 mm** from U5 (four tracks); R25's GND pad reaches
+x 5.375.
 
 **U5 is KiCad's stock part, and the layout is this block's own** (2026-10-30), not a cut from a reviewed
 board: so the toolkit ships no third-party library, and so the input capacitor sits at the input.
@@ -10,10 +11,15 @@ board: so the toolkit ships no third-party library, and so the input capacitor s
   pads (2.0 × 1.5 mm against 2.47 × 0.98) 0.32 mm further out.
 - **C1 (input) beside VIN**, rotated 90°: pad 1 level with pin 3 on a 2.35 mm track, its GND pad facing
   into the front pour, which runs under the pin row to pin 1. **C4 (output) at the tab** on a 2.3 mm
-  track. On the source board C1 sat 10.5 mm of track away, past the tab — an independent review of the
+  track, **returned to ground through R25** (below). On the source board C1 sat 10.5 mm of track away, past the tab — an independent review of the
   first stock-part version flagged it (SHOULD-FIX), and this layout is the fix.
+- **R25 (2026-10-31): a 0 Ω 0603 link (UNI-ROYAL 0603WAF0000T5E, C21189, JLC Basic) in C4's return**,
+  internal net C4_ESR, on a 1.425 mm track right of C4; its GND pad joins the front pour. It is there so
+  output ESR can be added without a new board: swap it for 0.1–0.47 Ω if 3V3 rings (below). Taken from
+  the source board, which added it the same day (its review rounds 24–27, regression sim6).
+  `model.inc` takes it as `r25` (default 5 mΩ, ASSUMED: no typical is given; set the swap value).
 - **Checked**: `selftest` (connected at all four rotations); `tests/drc_block.py` — KiCad DRC of the
-  block alone, clean, no unconnected items, the front GND pour one piece reaching U5.1, C1.2 and C4.2;
+  block alone, clean, no unconnected items, the front GND pour one piece reaching U5.1, C1.2 and R25.2;
   it fails, as it should, on a VBUS track 0.05 mm from the tab and on C1's courtyard pushed into U5's;
   `jlc_verify` with **JLC CPL +180** for C435835 on this footprint (`jlc.ROTATE_FP`; the source board's
   EasyEDA footprint needs 0 and keeps it), and an end-to-end CPL export placing U5 at 90°.
@@ -45,9 +51,15 @@ board: so the toolkit ships no third-party library, and so the input capacitor s
     about 42 µF nominal on the rail.
   The plot shows where ST characterised the part as stable, not where it is unstable, and the
   behavioural model can't predict phase margin. **Scope 3V3 at bring-up for ringing or oscillation, on
-  a load step (Wi-Fi TX).** If it rings, the datasheet's own suggestion is 4.7 µF at the output (with
-  1 µF in); dropping C4 to 4.7–10 µF raises its ESR toward the floor and keeps the sum lower. The same
-  applies to the source board.
+  a load step (Wi-Fi TX).** Probe from C4.1 (or U5's tab) to R25.2 or another true ground, **not
+  across C4**: its second pad is C4_ESR, which is not ground once R25 is swapped.
+  - **If it rings, swap R25 for 0.1–0.47 Ω** (the block's own fix; with the link fitted, C4's ESR
+    plus the ASSUMED 5 mΩ link is still about 10 mΩ, below the floor). On the source board, with its
+    copper, sim6 put the rail's effective ESR at 100 kHz at 18–19 mΩ fitted, about 50 mΩ at 0.1 Ω and
+    78–95 mΩ at 0.47 Ω, and the Wi-Fi-burst minimum unchanged (3.149 V on copper at every value).
+    This block's copper was not simulated. Use an iron or tweezers, not hot air: C4's pad is near.
+  - ST's other lever: dropping C4 to 4.7–10 µF raises its ESR toward the floor and keeps the sum
+    lower (the datasheet's own suggestion is 4.7 µF at the output, with 1 µF in).
 - **JLC placement margin**: `jlc_verify` puts JLC's footprint 0.32 mm off KiCad's pin pads (its limit is
   0.35): KiCad's pin pads sit further out. The lead tips (7.0 mm lead span) land inside both. Watch U5's
   paste and placement on the first JLC order.

@@ -8,7 +8,7 @@ joins block to block, so a new board's review covers the joins and whatever is n
 |---|---|---|---|---|---|
 | [`esp32-c3-wroom-02`](esp32-c3-wroom-02/) | U1 | U1 module, C5, EN RC (R6, C6), IO8/IO2 pull-ups (R7, R9), RESET/BOOT (SW1, SW2) | 47 items, 3 vias | 3V3, GND, IO0, IO1, IO4, IO5, IO6, IO10, RXD, TXD, USB_DN, USB_DP (IO3, IO7 optional) | EN, IO2, IO8, IO9 |
 | [`usb-c-power`](usb-c-power/) | J1 | J1 HRO TYPE-C-31-M-12, CC pull-downs (R1, R2), SRV05-4 ESD (U2) | 17 items, 2 vias | 3V3, GND, USB_DN, USB_DP, VBUS | CC1, CC2 |
-| [`ldo-ldl1117`](ldo-ldl1117/) | U5 | U5 LDL1117S33R (KiCad stock SOT-223), C1 10u at VIN, C4 22u at the tab | 3 items | 3V3, GND, VBUS | — |
+| [`ldo-ldl1117`](ldo-ldl1117/) | U5 | U5 LDL1117S33R (KiCad stock SOT-223), C1 10u at VIN, C4 22u at the tab returned through R25 (0 Ω link; swap to add ESR) | 4 items | 3V3, GND, VBUS | C4_ESR |
 
 Each directory holds:
 

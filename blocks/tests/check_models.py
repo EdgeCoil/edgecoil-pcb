@@ -25,7 +25,8 @@ CASES = {
         block="XA vbusA vddA 0 ldo_ldl1117",
         flat="""XU5 vbusB vddB 0 LDL1117 vr=3.3 rdo=0.36 ilim=2.0 iq=250u gp=7 wi=2e6 tau=0.15u tss=50u rlr=0.0042
 XC1 vbusB 0 MLCC c0=1.095e-05 v0=5.0 m=1.75 k=1 esr=8.5m vop=5.0
-XC4 vddB 0 MLCC c0=2.02e-05 v0=5.0 m=1.75 k=1 esr=4.7m vop=3.3""",
+XC4 vddB c4eB MLCC c0=2.02e-05 v0=5.0 m=1.75 k=1 esr=4.7m vop=3.3
+R25 c4eB 0 5m""",
         stim="""XSA vbusA 0 usb_charger_cable t_on=100u rcab=0.2 lcab=0.7u
 XSB vbusB 0 usb_charger_cable t_on=100u rcab=0.2 lcab=0.7u
 ILA vddA 0 PWL(0 0 1m 25m 2m 25m 2.0005m 345m 2.3m 345m 2.3005m 25m)

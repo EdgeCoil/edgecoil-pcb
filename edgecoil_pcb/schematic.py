@@ -99,6 +99,8 @@ def write_schematic(cfg, name, parts, path):
     # (Not on nets a power-output pin already drives: the charger's VBAT and the regulator's 3V3.)
     driven = {"3V3", "VBAT"} if "VBUS" in {n for p in parts for n in p.pins.values()} else set()
     supplies = sorted(({n for p in parts for n in p.pins.values()} & {"GND", "VBAT", "VBUS", "VSYS", "3V3"}) - driven)
+    if cfg.pwr_flag_nets is not None:
+        supplies = sorted(cfg.pwr_flag_nets)
     _, fpins = used["power:PWR_FLAG"]
     for i, net in enumerate(supplies):
         fx, fy = (cfg.flag_x if cfg.flag_x is not None else x + 76.2), 50.8 + i * 15.24

@@ -39,6 +39,10 @@ class Config:
     instance_project: Optional[Callable] = None  # variant -> project name in symbol instances
     hide_ic_values: bool = True            # U* values hidden on the sheet (audit: printed over pin names)
     off_sheet_ok: bool = False             # only warn, not stop, for a symbol drawn past the sheet's edge
+    # Nets that get a PWR_FLAG. None: the supplies among GND/VBAT/VBUS/VSYS/3V3, less 3V3 and VBAT when
+    # VBUS is present (an LDO's power-output pin drives them). A board whose regulator has no
+    # power-output pin (a buck: FB is an input) names its own.
+    pwr_flag_nets: Optional[tuple] = None
 
     # Board.
     power_nets: tuple = ("VBUS", "3V3")    # the wide "Power" net class

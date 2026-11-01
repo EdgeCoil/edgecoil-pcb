@@ -22,10 +22,13 @@ ROTATE = {"C841192": 270, "C15127": 180, "C85364": 180, "C32574": 270,  # RT9080
           "C82045": 180, "C20917": 180, "C37704": 180, "C109309": 180,  # BSS138, AO3400A, BAT54C, BAV170: pins 1-2 on +x in EasyEDA
           "C2932672": 270, "C492401": 270,  # 1x7 socket, 1x2 header: JLC draws them across, not down
           "C7836": 180, "C8545": 180,  # SN74LVC1G17 SOT-23-5, 2N7002 SOT-23
-          "C780769": 270}  # AP63203 TSOT-23-6: EasyEDA draws it upright (180 lands 1.21 mm off, 90 mirrored)
+          "C780769": 270,  # AP63203 TSOT-23-6: EasyEDA draws it upright (180 lands 1.21 mm off, 90 mirrored)
+          "C158012": 180, "C131334": 180, "C131342": 180}  # JST XH/PH THT: EasyEDA numbers the row the other way
 # KiCad's pin headers and sockets have their origin on pin 1; JLC's are centred.
 OFFSET = {"C165948": (0.0, 1.571),  # HRO TYPE-C-31-M-12: JLC's origin is towards the pads
-          "C2932672": (0.0, -7.62), "C492401": (0.0, -1.27)}
+          "C2932672": (0.0, -7.62), "C492401": (0.0, -1.27),
+          # JST through-hole sockets, KiCad's origin on pin 1, pins along +x: JLC's is the row's middle.
+          "C158012": (1.25, 0.0), "C131334": (3.0, 0.0), "C131342": (5.0, 0.0)}
 
 # How each part's placement was last checked. jlc_verify places JLC's own EasyEDA footprint by the
 # table above and checks every pad lands on KiCad's (by number, or by anode/cathode where the two
@@ -53,6 +56,11 @@ PROVENANCE = {
     "C354583": "jlc_verify 2026-11-02",  # CENKER CKCSA4020-4.7uH/M
     "C28323": "jlc_verify 2026-11-02",  # Samsung CL21B105KBFNNNE, 1 uF 50 V 0805
     "C507406": "jlc_verify 2026-11-02",  # Fenghua MFL12HR010FT, 10 mohm 2512 alloy shunt
+    # JST through-hole sockets (date-label-printer's assembled-connector option): centred and turned
+    # 180 by ROTATE/OFFSET above.
+    "C158012": "jlc_verify 2026-11-02",  # JST B2B-XH-A(LF)(SN)
+    "C131334": "jlc_verify 2026-11-02",  # JST B4B-PH-K-S(LF)(SN)
+    "C131342": "jlc_verify 2026-11-02",  # JST B6B-PH-K-S(LF)(SN)
 }
 
 

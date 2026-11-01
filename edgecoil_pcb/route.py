@@ -130,14 +130,21 @@ def stitch(board, pitch=3.0, via=0.6, drill=0.3):
     return len(vias)
 
 
-def prune(board):
-    """Remove track stubs that end on nothing (Freerouting occasionally leaves one)."""
-    removed = 0
-    # Zero-length segments join nothing.
-    for t in [t for t in board.GetTracks() if t.GetClass() == "PCB_TRACK" and t.GetStart() == t.GetEnd()]:
-        board.Remove(t)
-        removed += 1
+def remove_tracks(path, uuids):
+    """Delete the track segments with these uuids from the saved board file. Removing them through
+    pcbnew's bindings in a loop leaves its wrappers as bare SwigPyObjects (every 4-layer autoroute,
+    2026-11-02, where Freerouting 2.5 leaves more stubs)."""
+    src = open(path).read()
+    out = re.sub(r"\t\(segment\n(?:\t\t[^\n]*\n)*?\t\)\n",
+                 lambda m: "" if re.search(r'\(uuid "([^"]*)"\)', m.group(0)).group(1) in uuids else m.group(0), src)
+    open(path, "w").write(out)
+
+
+def prune(path):
+    """Remove track stubs that end on nothing (Freerouting occasionally leaves one), working on the
+    saved file; returns the reloaded board."""
     while True:
+        board = pcbnew.LoadBoard(path)
         tracks = [t for t in board.GetTracks() if t.GetClass() == "PCB_TRACK"]
         ends = {}
         for t in tracks:
@@ -152,12 +159,13 @@ def prune(board):
                 o is not t and o.GetNetCode() == t.GetNetCode() and o.GetLayer() == t.GetLayer() and o.HitTest(p)
                 for o in tracks) or any(
                 pd.GetNetCode() == t.GetNetCode() and pd.IsOnLayer(t.GetLayer()) and pd.HitTest(p) for pd in pads)
-        dead = [t for t in tracks if not (anchored(t, t.GetStart()) and anchored(t, t.GetEnd()))]
+        # Zero-length segments join nothing.
+        # Locked copper is the generator's (an escape, a crossover): never pruned, even unjoined.
+        dead = [t for t in tracks if not t.IsLocked() and (t.GetStart() == t.GetEnd()
+                or not (anchored(t, t.GetStart()) and anchored(t, t.GetEnd())))]
         if not dead:
-            return removed
-        for t in dead:
-            board.Remove(t)
-        removed += len(dead)
+            return board
+        remove_tracks(path, {t.m_Uuid.AsString() for t in dead})
 
 
 def drc(pcb):
@@ -187,9 +195,10 @@ def route_once(base, pristine):
     # Export without the top pour: Freerouting treats a pour as a solid plane, so top-side GND pads
     # would count as connected through it and get no via. With only the bottom plane, each one is
     # dropped through to it.
-    # On four layers only In1's plane goes to Freerouting. It stays a signal layer (typed "power",
-    # Freerouting 2.5 routed GND pad to pad instead of dropping to the plane: 27 left unrouted) with
-    # tracks switched off, so the plane is never cut and every GND pad drops a via to it.
+    # On four layers only In1's plane goes to Freerouting, on a signal layer like the back plane on two:
+    # every GND pad then drops a via to it. Typed "power", Freerouting 2.5 routed GND pad to pad
+    # instead (27 left); with In1's tracks switched off, likewise (13 GND left). Left active it lays
+    # only GND there (40 of 40 tracks, 2026-11-02), and cut_plane() fails any attempt that lays another net.
     four = board.GetCopperLayerCount() == 4
     plane = pcbnew.In1_Cu if four else pcbnew.B_Cu
     top = [z for z in board.Zones() if not z.GetIsRuleArea() and z.GetLayer() != plane]
@@ -199,11 +208,6 @@ def route_once(base, pristine):
         raise SystemExit("DSN export failed")
     for z in top:
         board.Add(z)
-    if four:
-        src = open(dsn).read()
-        if src.count("    (boundary\n") != 1 or "(plane GND (polygon In1.Cu" not in src:
-            raise SystemExit("DSN: no single boundary or no In1.Cu GND plane")
-        open(dsn, "w").write(src.replace("    (boundary\n", "    (autoroute_settings\n      (layer_rule In1.Cu (active off))\n    )\n    (boundary\n", 1))
     # Heap capped: uncapped, a long run grew until the container's OOM killer took it (8 GB host).
     # And a time limit, since Freerouting 2.1 went on passing forever when it couldn't finish: that
     # attempt just scores as failed.
@@ -235,8 +239,7 @@ def route_once(base, pristine):
     # Reload from disk: after the SES import the SWIG wrappers sometimes hand back bare SwigPyObjects
     # for the zones (cec-bridge, 2026-10-25), which then have no methods.
     board.Save(base + ".kicad_pcb")
-    board = pcbnew.LoadBoard(base + ".kicad_pcb")
-    prune(board)
+    board = prune(base + ".kicad_pcb")
     # Stitch with islands kept: a pocket of pour fenced in by tracks is otherwise removed before it
     # can get a via, and the stitcher only places vias where both layers already have pour.
     pours = [z for z in board.Zones() if not z.GetIsRuleArea()]
@@ -249,17 +252,18 @@ def route_once(base, pristine):
     lost, crowded = lost_pour(board), crowded_pins(board)
     if os.environ.get("ROUTE_DEBUG"):
         print(f"  lost pour {lost:.1f} mm2, crowded pins {crowded or 'none'}", file=sys.stderr)
-    lost = lost > LOST_POUR or bool(crowded)
+    cut = cut_plane(board)
+    if os.environ.get("ROUTE_DEBUG") and cut:
+        print(f"  In1 plane cut by {cut}", file=sys.stderr)
+    lost = lost > LOST_POUR or bool(crowded) or bool(cut)
     board.Save(base + ".kicad_pcb")
     # Freerouting can still leave a sliver that KiCad calls dangling; let KiCad's DRC name them.
     for _ in range(3):
         dead, problems = drc(base + ".kicad_pcb")
         if not dead:
             return problems + lost
+        remove_tracks(base + ".kicad_pcb", dead)
         board = pcbnew.LoadBoard(base + ".kicad_pcb")
-        for t in list(board.GetTracks()):
-            if t.m_Uuid.AsString() in dead:
-                board.Remove(t)
         pcbnew.ZONE_FILLER(board).Fill(board.Zones())
         board.Save(base + ".kicad_pcb")
     return drc(base + ".kicad_pcb")[1] + lost
@@ -308,6 +312,14 @@ def crowded_pins(board):
                         continue
                     out.append((fp.GetReference(), pad.GetNumber(), t.GetNetname()))
     return sorted(set(out))
+
+
+def cut_plane(board):
+    """Nets other than GND with copper on In1, the solid plane of a 4-layer board."""
+    if board.GetCopperLayerCount() != 4:
+        return []
+    return sorted({t.GetNetname() for t in board.GetTracks()
+                   if t.GetClass() == "PCB_TRACK" and t.GetLayer() == pcbnew.In1_Cu and t.GetNetname() != "GND"})
 
 
 def lost_pour(board):
@@ -365,6 +377,9 @@ def autoroute(cfg, name, attempts=8):
                 problems = route_once(base, pristine)
             except (AttributeError, subprocess.CalledProcessError) as e:
                 print(f"  attempt failed: {e}", file=sys.stderr)
+                if os.environ.get("ROUTE_DEBUG"):
+                    import traceback
+                    traceback.print_exc()
                 problems = 999
             scores.append(problems)
             if problems == min(scores):
@@ -489,6 +504,8 @@ def replay(cfg, name):
     lost, crowded = lost_pour(board), crowded_pins(board)
     if lost > LOST_POUR or crowded:
         raise SystemExit(f"{name}: routing.json loses {lost:.1f} mm2 of back pour; pins crowded: {crowded or 'none'}")
+    if cut_plane(board):
+        raise SystemExit(f"{name}: routing.json puts {cut_plane(board)} on In1, the ground plane")
     board.Save(path)
     from .blocks import renetted
     moved = renetted(path, items)

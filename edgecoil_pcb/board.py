@@ -174,7 +174,7 @@ def write_board(cfg, name, parts, h, keepouts, silk, extras, path, root):
     board = pcbnew.BOARD()
     board.SetFileName(path)
     ds = board.GetDesignSettings()
-    ds.SetCopperLayerCount(2)
+    ds.SetCopperLayerCount(cfg.copper_layers)
     nets = {}
     for netname in sorted({n for p in parts for n in p.pins.values() if n}):
         ni = pcbnew.NETINFO_ITEM(board, netname)
@@ -250,6 +250,11 @@ def write_board(cfg, name, parts, h, keepouts, silk, extras, path, root):
         x0, x1, y = extras["back_pour_notch"]
         back = [(0.3, 0.3), (x0, 0.3), (x0, y), (x1, y), (x1, 0.3)] + inset[1:]
     zone(board, nets["GND"], pcbnew.B_Cu, back)
+    if cfg.copper_layers == 4:
+        zone(board, nets["GND"], pcbnew.In1_Cu, inset)   # the reference plane, never routed
+        zone(board, nets["GND"], pcbnew.In2_Cu, inset)   # poured round In2's signals
+    elif cfg.copper_layers != 2:
+        raise SystemExit(f"{name}: copper_layers must be 2 or 4")
     for k in keepouts:
         zone(board, None, None, k, keepout=True)
     for cx, cy, r in extras.get("part_free", []):
@@ -376,7 +381,7 @@ def write_board(cfg, name, parts, h, keepouts, silk, extras, path, root):
         bad = renetted(path, cfg.block_copper)
         if bad:
             raise SystemExit(f"{name}: block copper changed net on save (it touches another net's pad): {bad}")
-    set_stackup(path)
+    set_stackup(path, cfg.copper_layers)
 
 
 # Black solder mask, white legend, 1.6 mm FR4. The Python API doesn't reach the stackup, so it is
@@ -398,8 +403,24 @@ STACKUP = """\t\t(stackup
 """
 
 
-def set_stackup(path):
+# JLC's JLC04161H-7628 (1.6 mm, 1 oz outer, 0.5 oz inner): 7628 prepreg 0.2104 mm each side of a
+# 1.065 mm core.
+STACKUP4 = STACKUP.replace(
+    """\t\t\t(layer "dielectric 1" (type "core") (color "FR4 natural") (thickness 1.51) (material "FR4")
+\t\t\t\t(epsilon_r 4.5) (loss_tangent 0.02))
+""", """\t\t\t(layer "dielectric 1" (type "prepreg") (color "FR4 natural") (thickness 0.2104) (material "7628")
+\t\t\t\t(epsilon_r 4.4) (loss_tangent 0.02))
+\t\t\t(layer "In1.Cu" (type "copper") (thickness 0.0152))
+\t\t\t(layer "dielectric 2" (type "core") (color "FR4 natural") (thickness 1.065) (material "FR4")
+\t\t\t\t(epsilon_r 4.6) (loss_tangent 0.02))
+\t\t\t(layer "In2.Cu" (type "copper") (thickness 0.0152))
+\t\t\t(layer "dielectric 3" (type "prepreg") (color "FR4 natural") (thickness 0.2104) (material "7628")
+\t\t\t\t(epsilon_r 4.4) (loss_tangent 0.02))
+""")
+
+
+def set_stackup(path, layers=2):
     src = open(path).read()
     src = re.sub(r"\t\t\(stackup\n.*?\n\t\t\)\n", "", src, flags=re.S)
-    open(path, "w").write(src.replace("\t(setup\n", "\t(setup\n" + STACKUP, 1))
+    open(path, "w").write(src.replace("\t(setup\n", "\t(setup\n" + (STACKUP4 if layers == 4 else STACKUP), 1))
 

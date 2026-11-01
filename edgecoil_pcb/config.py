@@ -46,6 +46,9 @@ class Config:
 
     # Board.
     power_nets: tuple = ("VBUS", "3V3")    # the wide "Power" net class
+    # 2, or 4: In1.Cu a solid GND plane (Freerouting sees it as a plane and drops GND pads to it),
+    # In2.Cu a third signal layer with GND poured round it; JLC's 1.6 mm JLC04161H-7628 stackup.
+    copper_layers: int = 2
     rule_severities: dict = field(default_factory=dict)  # DRC rule -> severity, over the project's defaults
     # Extra custom DRC rules for the .kicad_dru, as KiCad rule text: e.g. a fine-pitch package whose own
     # pads sit closer than the board's 0.2 mm clearance.

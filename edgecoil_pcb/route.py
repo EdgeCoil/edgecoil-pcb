@@ -30,6 +30,12 @@ JAVA = os.environ.get("JAVA", "java")
 ROUTE_TIMEOUT = int(os.environ.get("ROUTE_TIMEOUT", "600"))
 
 
+def copper(board):
+    """The board's copper layers, top first: F, B on two layers; F, In1, In2, B on four."""
+    return [l for l in (pcbnew.F_Cu, pcbnew.In1_Cu, pcbnew.In2_Cu, pcbnew.B_Cu)
+            if board.GetEnabledLayers().Contains(l)]
+
+
 def stitch(board, pitch=3.0, via=0.6, drill=0.3):
     """GND vias on a grid wherever both layers' filled pour already surrounds the whole via, so
     each via touches nothing but ground and the two pours become one net."""
@@ -39,7 +45,7 @@ def stitch(board, pitch=3.0, via=0.6, drill=0.3):
         for z in board.Zones():
             if z.GetNetname() != "GND":
                 continue
-            for layer in (pcbnew.F_Cu, pcbnew.B_Cu):
+            for layer in copper(board):
                 if z.IsOnLayer(layer) and z.HasFilledPolysForLayer(layer):
                     poly = pcbnew.SHAPE_POLY_SET(z.GetFilledPolysList(layer))
                     poly.Deflate(pcbnew.FromMM(via / 2 + margin), pcbnew.CORNER_STRATEGY_ROUND_ALL_CORNERS,
@@ -93,7 +99,7 @@ def stitch(board, pitch=3.0, via=0.6, drill=0.3):
     for z in board.Zones():
         if z.GetNetname() != "GND":
             continue
-        for layer in (pcbnew.F_Cu, pcbnew.B_Cu):
+        for layer in copper(board):
             if not z.IsOnLayer(layer):
                 continue
             raw = z.GetFilledPolysList(layer)
@@ -178,13 +184,23 @@ def route_once(base, pristine):
     # Export without the top pour: Freerouting treats a pour as a solid plane, so top-side GND pads
     # would count as connected through it and get no via. With only the bottom plane, each one is
     # dropped through to it.
-    top = [z for z in board.Zones() if not z.GetIsRuleArea() and z.GetLayer() == pcbnew.F_Cu]
+    # On four layers only In1's plane goes to Freerouting, typed as a power layer so it routes nothing
+    # there and drops every GND pad to it.
+    four = board.GetCopperLayerCount() == 4
+    plane = pcbnew.In1_Cu if four else pcbnew.B_Cu
+    top = [z for z in board.Zones() if not z.GetIsRuleArea() and z.GetLayer() != plane]
     for z in top:
         board.Remove(z)
     if not pcbnew.ExportSpecctraDSN(board, dsn):
         raise SystemExit("DSN export failed")
     for z in top:
         board.Add(z)
+    if four:
+        src = open(dsn).read()
+        out, n = re.subn(r"\(layer In1\.Cu\s*\(type signal\)", "(layer In1.Cu (type power)", src)
+        if n != 1:
+            raise SystemExit("DSN: no In1.Cu signal layer to make a plane")
+        open(dsn, "w").write(out)
     # Heap capped: uncapped, a long run grew until the container's OOM killer took it (8 GB host).
     # And a time limit, since Freerouting 2.1 goes on passing forever when it can't finish: that
     # attempt just scores as failed.
@@ -294,8 +310,9 @@ def lost_pour(board):
 
 
 def back_pour(board):
-    return sum(abs(z.GetFilledPolysList(pcbnew.B_Cu).Area()) for z in board.Zones()
-               if not z.GetIsRuleArea() and z.GetNetname() == "GND" and z.IsOnLayer(pcbnew.B_Cu))
+    """GND pour on every layer but the top (the back plane, and on four layers the inner ones too)."""
+    return sum(abs(z.GetFilledPolysList(l).Area()) for z in board.Zones() for l in copper(board)[1:]
+               if not z.GetIsRuleArea() and z.GetNetname() == "GND" and z.IsOnLayer(l))
 
 
 def dedupe(path):

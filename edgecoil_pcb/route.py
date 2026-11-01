@@ -25,7 +25,10 @@ from collections import Counter
 
 import pcbnew
 
-JAR = os.environ.get("FREEROUTING", os.path.expanduser("~/.local/opt/freerouting/freerouting-2.1.0.jar"))
+# 2.5.0 since 2026-11-02: it stops once the score stops improving and still writes the SES, naming the
+# connections it left; 2.1.0 went on passing until killed and left nothing to inspect. Frozen boards
+# replay routing.json and never run it.
+JAR = os.environ.get("FREEROUTING", os.path.expanduser("~/.local/opt/freerouting/freerouting-2.5.0.jar"))
 JAVA = os.environ.get("JAVA", "java")
 ROUTE_TIMEOUT = int(os.environ.get("ROUTE_TIMEOUT", "600"))
 
@@ -184,8 +187,9 @@ def route_once(base, pristine):
     # Export without the top pour: Freerouting treats a pour as a solid plane, so top-side GND pads
     # would count as connected through it and get no via. With only the bottom plane, each one is
     # dropped through to it.
-    # On four layers only In1's plane goes to Freerouting, typed as a power layer so it routes nothing
-    # there and drops every GND pad to it.
+    # On four layers only In1's plane goes to Freerouting. It stays a signal layer (typed "power",
+    # Freerouting 2.5 routed GND pad to pad instead of dropping to the plane: 27 left unrouted) with
+    # tracks switched off, so the plane is never cut and every GND pad drops a via to it.
     four = board.GetCopperLayerCount() == 4
     plane = pcbnew.In1_Cu if four else pcbnew.B_Cu
     top = [z for z in board.Zones() if not z.GetIsRuleArea() and z.GetLayer() != plane]
@@ -197,19 +201,29 @@ def route_once(base, pristine):
         board.Add(z)
     if four:
         src = open(dsn).read()
-        out, n = re.subn(r"\(layer In1\.Cu\s*\(type signal\)", "(layer In1.Cu (type power)", src)
-        if n != 1:
-            raise SystemExit("DSN: no In1.Cu signal layer to make a plane")
-        open(dsn, "w").write(out)
+        if src.count("    (boundary\n") != 1 or "(plane GND (polygon In1.Cu" not in src:
+            raise SystemExit("DSN: no single boundary or no In1.Cu GND plane")
+        open(dsn, "w").write(src.replace("    (boundary\n", "    (autoroute_settings\n      (layer_rule In1.Cu (active off))\n    )\n    (boundary\n", 1))
     # Heap capped: uncapped, a long run grew until the container's OOM killer took it (8 GB host).
-    # And a time limit, since Freerouting 2.1 goes on passing forever when it can't finish: that
+    # And a time limit, since Freerouting 2.1 went on passing forever when it couldn't finish: that
     # attempt just scores as failed.
+    debug = os.environ.get("ROUTE_DEBUG")
+    log = base + ".freerouting.log"
     try:
-        subprocess.run([JAVA, "-Xmx2500m", "-jar", JAR, "-de", dsn, "-do", ses, "-mp", "100", "-mt", "1",
-                        "--gui.enabled=false"], check=True, stdout=subprocess.DEVNULL, timeout=ROUTE_TIMEOUT)
+        with open(log if debug else os.devnull, "w") as out:
+            subprocess.run([JAVA, "-Xmx2500m", "-jar", JAR, "-de", dsn, "-do", ses, "-mp", "100", "-mt", "1",
+                            "--gui.enabled=false"], check=True, stdout=out, stderr=subprocess.STDOUT,
+                           timeout=ROUTE_TIMEOUT)
     except subprocess.TimeoutExpired:
         print(f"  attempt gave up after {ROUTE_TIMEOUT} s", file=sys.stderr)
         return 999
+    finally:
+        if debug and os.path.exists(log):
+            # What Freerouting itself says it left unrouted.
+            text = open(log, errors="replace").read()
+            left = re.findall(r"^  Net '[^']*' \(\d+ unrouted connections?\):(?:\n    - .*)*", text, re.M)
+            print("  freerouting left: " + ("\n".join(left) if left else "nothing"), file=sys.stderr)
+            os.remove(log)
     if not pcbnew.ImportSpecctraSES(board, ses):
         raise SystemExit("SES import failed")
     lost = {(t.GetClass(), t.GetStart().x, t.GetStart().y, t.GetEnd().x, t.GetEnd().y) for t in fixed} - {

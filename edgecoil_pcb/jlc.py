@@ -49,6 +49,9 @@ PROVENANCE = {
         "C127692", "C137795", "C165608", "C1779", "C22797", "C22855", "C22857", "C23063", "C23107", "C2864845",
         "C344171", "C3445246", "C381098", "C408337", "C53987", "C57112", "C7471904", "C780769", "C7836",
         "C8545", "C97604")},
+    # date-label-printer audit round 1: L1 for Isat 4 A, C21/C31 to a Basic 50 V part.
+    "C354583": "jlc_verify 2026-11-02",  # CENKER CKCSA4020-4.7uH/M
+    "C28323": "jlc_verify 2026-11-02",  # Samsung CL21B105KBFNNNE, 1 uF 50 V 0805
 }
 
 

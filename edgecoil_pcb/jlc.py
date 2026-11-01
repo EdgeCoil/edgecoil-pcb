@@ -20,7 +20,9 @@ ROTATE = {"C841192": 270, "C15127": 180, "C85364": 180, "C32574": 270,  # RT9080
           "C124691": 180,  # TPD4E1U06 (SOT-23-6 like the SRV05-4: verify pad by pad)
           "C265453": 180,  # JST S7B-PH-SM4-TB: JLC draws it pins-down
           "C82045": 180, "C20917": 180, "C37704": 180, "C109309": 180,  # BSS138, AO3400A, BAT54C, BAV170: pins 1-2 on +x in EasyEDA
-          "C2932672": 270, "C492401": 270}  # 1x7 socket, 1x2 header: JLC draws them across, not down
+          "C2932672": 270, "C492401": 270,  # 1x7 socket, 1x2 header: JLC draws them across, not down
+          "C7836": 180, "C8545": 180,  # SN74LVC1G17 SOT-23-5, 2N7002 SOT-23
+          "C780769": 270}  # AP63203 TSOT-23-6: EasyEDA draws it upright (180 lands 1.21 mm off, 90 mirrored)
 # KiCad's pin headers and sockets have their origin on pin 1; JLC's are centred.
 OFFSET = {"C165948": (0.0, 1.571),  # HRO TYPE-C-31-M-12: JLC's origin is towards the pads
           "C2932672": (0.0, -7.62), "C492401": (0.0, -1.27)}
@@ -42,6 +44,11 @@ PROVENANCE = {
     "C21189": V,  # UNI-ROYAL 0603WAF0000T5E, 0 ohm 0603 link
     "C2653855": V,  # TPS25200DRVT: the DRVR (C128401) on the small reel; same DRV package and EasyEDA footprint
     "C54582899": V,  # XYECONN XY-S2B-PH-SM4-TB, JST PH 2-pin SMD (C295747 ran out at JLC, 2026-10-30)
+    # date-label-printer, jlc_verify 2026-11-02 (three caught: U5/U6/Q1 needed 270/180/180):
+    **{c: "jlc_verify 2026-11-02" for c in (
+        "C127692", "C137795", "C165608", "C1779", "C22797", "C22855", "C22857", "C23063", "C23107", "C2864845",
+        "C344171", "C3445246", "C381098", "C408337", "C53987", "C57112", "C7471904", "C780769", "C7836",
+        "C8545", "C97604")},
 }
 
 

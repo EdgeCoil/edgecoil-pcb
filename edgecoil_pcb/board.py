@@ -371,7 +371,10 @@ def write_board(cfg, name, parts, h, keepouts, silk, extras, path, root):
              if fp.Reference().IsVisible() and not fp.GetFPIDAsString().startswith("Button_Switch_Keyboard:")]
     boxes += [d.GetBoundingBox() for d in board.Drawings()
               if isinstance(d, pcbnew.PCB_TEXT) and d.GetLayer() == pcbnew.F_SilkS]
-    for b in boxes:
+    # Only once the routing is frozen: the labels were placed round its vias above, so the zones only
+    # guard hand edits. Before, they boxed the router in exactly where vias are needed (4-layer
+    # date-label-printer, 2026-11-02: 46 zones, 345 mm2; 9 connections unrouted with them, 1 without).
+    for b in boxes if os.path.exists(frozen) else []:
         b.Inflate(pcbnew.FromMM(0.1))
         x0, y0, x1, y1 = (pcbnew.ToMM(v) for v in (b.GetLeft(), b.GetTop(), b.GetRight(), b.GetBottom()))
         zone(board, None, None, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], via_free=True)

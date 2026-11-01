@@ -19,7 +19,7 @@ def write_project(cfg, name, path):
         "board": {"design_settings": {
             "defaults": {"board_outline_line_width": 0.1, "copper_line_width": 0.2, "copper_text_size_h": 1.5,
                          "silk_line_width": 0.15, "silk_text_size_h": 1.0, "silk_text_size_v": 1.0},
-            "rules": {"min_clearance": 0.2, "min_track_width": 0.2, "min_via_diameter": 0.6,
+            "rules": {"min_clearance": 0.2, "min_track_width": cfg.min_track_width, "min_via_diameter": 0.6,
                       "min_through_hole_diameter": MIN_DRILL, "min_copper_edge_clearance": 0.3,
                       "min_hole_to_hole": 0.25, "min_hole_clearance": 0.25, "min_silk_clearance": 0.0},
             "rule_severities": {"silk_overlap": "ignore", "silk_over_copper": "ignore",

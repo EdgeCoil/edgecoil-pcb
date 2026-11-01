@@ -52,6 +52,7 @@ PROVENANCE = {
     # date-label-printer audit round 1: L1 for Isat 4 A, C21/C31 to a Basic 50 V part.
     "C354583": "jlc_verify 2026-11-02",  # CENKER CKCSA4020-4.7uH/M
     "C28323": "jlc_verify 2026-11-02",  # Samsung CL21B105KBFNNNE, 1 uF 50 V 0805
+    "C507406": "jlc_verify 2026-11-02",  # Fenghua MFL12HR010FT, 10 mohm 2512 alloy shunt
 }
 
 

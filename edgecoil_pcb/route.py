@@ -135,8 +135,10 @@ def remove_tracks(path, uuids):
     pcbnew's bindings in a loop leaves its wrappers as bare SwigPyObjects (every 4-layer autoroute,
     2026-11-02, where Freerouting 2.5 leaves more stubs)."""
     src = open(path).read()
-    out = re.sub(r"\t\(segment\n(?:\t\t[^\n]*\n)*?\t\)\n",
-                 lambda m: "" if re.search(r'\(uuid "([^"]*)"\)', m.group(0)).group(1) in uuids else m.group(0), src)
+    # Vias too (KiCad's DRC names dangling ones), but never locked copper: that is the generator's.
+    out = re.sub(r"\t\((?:segment|via)\n(?:\t\t[^\n]*\n)*?\t\)\n",
+                 lambda m: "" if re.search(r'\(uuid "([^"]*)"\)', m.group(0)).group(1) in uuids
+                 and "(locked yes)" not in m.group(0) else m.group(0), src)
     open(path, "w").write(out)
 
 
@@ -175,7 +177,8 @@ def drc(pcb):
                     "-o", rpt, pcb], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     data = json.load(open(rpt))
     os.remove(rpt)
-    dead = {i["uuid"] for v in data.get("violations", []) if v["type"] == "track_dangling" for i in v["items"][:1]}
+    dead = {i["uuid"] for v in data.get("violations", []) if v["type"] in ("track_dangling", "via_dangling")
+            for i in v["items"][:1]}
     problems = sum(len(data.get(k, [])) for k in ("violations", "unconnected_items", "schematic_parity"))
     if os.environ.get("ROUTE_DEBUG"):
         kinds = Counter(v["type"] for k in ("violations", "unconnected_items", "schematic_parity") for v in data.get(k, []))
@@ -197,8 +200,7 @@ def route_once(base, pristine):
     # dropped through to it.
     # On four layers only In1's plane goes to Freerouting, on a signal layer like the back plane on two:
     # every GND pad then drops a via to it. Typed "power", Freerouting 2.5 routed GND pad to pad
-    # instead (27 left); with In1's tracks switched off, likewise (13 GND left). Left active it lays
-    # only GND there (40 of 40 tracks, 2026-11-02), and cut_plane() fails any attempt that lays another net.
+    # instead (27 left). cut_plane() fails any attempt that still lays another net there.
     four = board.GetCopperLayerCount() == 4
     plane = pcbnew.In1_Cu if four else pcbnew.B_Cu
     top = [z for z in board.Zones() if not z.GetIsRuleArea() and z.GetLayer() != plane]
@@ -208,6 +210,16 @@ def route_once(base, pristine):
         raise SystemExit("DSN export failed")
     for z in top:
         board.Add(z)
+    if four:
+        # Tracks on In1 at 20 times the cost: left plain, Freerouting laid 17 signal nets across the
+        # plane; switched off, it stopped counting the plane as a GND connection. Costed, it lays
+        # nothing there and GND still drops to it (2026-11-02).
+        src = open(dsn).read()
+        if src.count("    (boundary\n") != 1:
+            raise SystemExit("DSN: expected one boundary")
+        open(dsn, "w").write(src.replace("    (boundary\n", "    (autoroute_settings\n      (layer_rule In1.Cu (active on)"
+                                         " (preferred_direction horizontal) (preferred_direction_trace_costs 20)"
+                                         " (against_preferred_direction_trace_costs 20))\n    )\n    (boundary\n", 1))
     # Heap capped: uncapped, a long run grew until the container's OOM killer took it (8 GB host).
     # And a time limit, since Freerouting 2.1 went on passing forever when it couldn't finish: that
     # attempt just scores as failed.
@@ -257,8 +269,9 @@ def route_once(base, pristine):
         print(f"  In1 plane cut by {cut}", file=sys.stderr)
     lost = lost > LOST_POUR or bool(crowded) or bool(cut)
     board.Save(base + ".kicad_pcb")
-    # Freerouting can still leave a sliver that KiCad calls dangling; let KiCad's DRC name them.
-    for _ in range(3):
+    # Freerouting can still leave a sliver that KiCad calls dangling; let KiCad's DRC name them. Each
+    # round can expose the next piece of a dead-end branch (a via, then the track that led to it).
+    for _ in range(10):
         dead, problems = drc(base + ".kicad_pcb")
         if not dead:
             return problems + lost

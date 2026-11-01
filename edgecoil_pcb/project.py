@@ -58,7 +58,7 @@ def write_project(cfg, name, path):
         open(os.path.join(d, f"{kind}-lib-table"), "w").write(f'({kind}_lib_table\n  (version 7)\n{libs})\n')
     open(path[:-len(".kicad_pro")] + ".kicad_dru", "w").write(
         '(version 1)\n(rule "hand-soldered pins to pour"\n  (constraint clearance (min 0.4mm))\n'
-        '  (condition "A.Pad_Type == \'Through-hole\' && B.Type == \'Zone\'"))\n')
+        '  (condition "A.Pad_Type == \'Through-hole\' && B.Type == \'Zone\'"))\n' + "".join(r.rstrip() + "\n" for r in cfg.dru_rules))
 
 
 

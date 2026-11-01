@@ -214,7 +214,11 @@ def write_board(cfg, name, parts, h, keepouts, silk, extras, path, root):
             net = p.pins.get(num, "")
             if not net and num in pins:
                 # The name KiCad's schematic gives an unconnected pin's net, so parity checks pass.
-                net = f"unconnected-({p.ref}-{pins[num][0][3]}-Pad{num})"
+                # KiCad leaves the pin name out when it is empty, "~" or the pin's own number, and
+                # escapes "/" in it (found on a switch with pins named 1-6 and an eFuse's "PG/AUXOFF").
+                pname = pins[num][0][3]
+                pname = "" if pname in ("", "~", num) else pname.replace("/", "{slash}")
+                net = f"unconnected-({p.ref}-{pname}-Pad{num})" if pname else f"unconnected-({p.ref}-Pad{num})"
                 if net not in nets:
                     nets[net] = pcbnew.NETINFO_ITEM(board, net)
                     board.Add(nets[net])

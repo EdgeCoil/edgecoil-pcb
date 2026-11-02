@@ -1,0 +1,75 @@
+# SPDX-FileCopyrightText: 2026 edgecoil
+# SPDX-License-Identifier: MIT
+#
+# On every push and pull request: the block tests with their planted faults, and every public board
+# that vendors this toolkit rebuilt with THIS toolkit, which must come out identical to its committed
+# design. KiCad is pinned by digest because a different KiCad can change the output.
+name: test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TZ: UTC
+  KICAD_SYMBOL_DIR: /usr/share/kicad/symbols
+  KICAD_FOOTPRINT_DIR: /usr/share/kicad/footprints
+
+jobs:
+  blocks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: kicad/kicad:9.0.2-full@sha256:e26b62eefe0a54d54c850bddc089162a585d2ba01180bd9659efcc9e1ba689ef
+      options: --user root
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Tools beyond KiCad
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends ngspice librsvg2-bin python3-pil >/dev/null
+          python3 -c "import pcbnew; print('pcbnew', pcbnew.Version())"
+          ngspice -v | head -2
+      - name: Each block alone, at every rotation
+        run: for b in blocks/*/; do [ -f "$b/block.json" ] && python3 -m edgecoil_pcb.blocks selftest "$b"; done
+      - name: KiCad DRC of each block alone
+        run: for b in blocks/*/; do [ -f "$b/block.json" ] && python3 blocks/tests/drc_block.py "$b"; done
+      - name: Each block's SPICE model matches its parts
+        run: python3 blocks/tests/check_models.py
+      - name: Negative controls - each test must fail on a planted fault
+        run: python3 ci/negatives.py
+
+  downstream:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [cec-bridge, tune-button]
+    container:
+      image: kicad/kicad:9.0.2-full@sha256:e26b62eefe0a54d54c850bddc089162a585d2ba01180bd9659efcc9e1ba689ef
+      options: --user root
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+          path: edgecoil-pcb
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          repository: EdgeCoil/${{ matrix.board }}
+          persist-credentials: false
+          path: board
+      - name: Tools beyond KiCad
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends librsvg2-bin python3-pil >/dev/null
+      - name: Rebuild ${{ matrix.board }} with this toolkit; it must be identical to its committed design
+        run: python3 edgecoil-pcb/ci/downstream.py board ${{ matrix.board }}

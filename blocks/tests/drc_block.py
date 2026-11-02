@@ -5,7 +5,11 @@
 violation is reported except the ones a lone block must have: its ports go nowhere (unconnected
 items) and there is no schematic to compare with.
 
-    python3 blocks/tests/drc_block.py <block dir> [<block.json to use instead>]
+    python3 blocks/tests/drc_block.py <block dir> [<block.json to use instead>] [nickname=dir ...]
+
+A block whose parts come from a board's own library (block.json "local_libs") needs that library:
+nickname=dir names the directory holding <nickname>.kicad_sym and <nickname>.pretty. The block's
+"copper_layers", "min_track_width", "dru_rules" and "solid_pads" are applied as a board would.
 
 Exit 1 on any other violation. Needs KiCad 9 (pcbnew, kicad-cli) and KICAD_SYMBOL_DIR.
 """
@@ -30,8 +34,12 @@ EXPECTED = {"unconnected_items", "schematic_parity", "lib_footprint_mismatch", "
 EXPECTED_ONLY_ON_BACK = {"isolated_copper"}
 
 
-def main(block_dir, override=None):
+def main(block_dir, override=None, libs=None):
     b = blocks.Block(json.load(open(override or os.path.join(block_dir, "block.json"))), os.path.join(block_dir, "block.json"))
+    libs = libs or {}
+    missing = sorted(set(b.data.get("local_libs", {})) - set(libs))
+    if missing:
+        raise SystemExit(f"{b.name}: needs library {missing}: pass nickname=dir")
     pts = [p["at"] for p in b.data["parts"]] + [[v / 1e6 for v in i.get("start", i.get("via"))] for i in b.data["copper"]]
     x0, y0 = min(p[0] for p in pts) - 8, min(p[1] for p in pts) - 8
     w, h = max(p[0] for p in pts) - x0 + 8, max(p[1] for p in pts) - y0 + 8
@@ -40,7 +48,11 @@ def main(block_dir, override=None):
     with tempfile.TemporaryDirectory() as d:
         cfg = Config(project="drc", here=d, ns=uuid.uuid4(), variants={}, width=w,
                      power_nets=tuple(n for n in b.ports if n not in ("GND",)),
-                     esd_refs=b.board_refs("esd_ground"))
+                     esd_refs=b.board_refs("esd_ground"),
+                     local_libs={k: (os.path.abspath(v), "") for k, v in libs.items()},
+                     copper_layers=b.data.get("copper_layers", 2),
+                     min_track_width=b.data.get("min_track_width", 0.2),
+                     dru_rules=b.dru_rules(), solid_pads=b.solid_pads())
         cfg.variants = {"drc": lambda: (b.parts(at, nets=nets), h, [], [], {"width": w})}
         cfg.block_copper = b.copper(at, nets=nets)
         build(cfg, ["drc"])
@@ -54,10 +66,19 @@ def main(block_dir, override=None):
         r = json.load(open(rpt))
         if os.environ.get("DRC_DUMP"):
             import shutil; shutil.copy(rpt, os.environ["DRC_DUMP"]); shutil.copy(path, os.environ["DRC_DUMP"] + ".kicad_pcb")
+    # A locked escape (block.json copper marked "escape") runs from a pad out to where a board joins
+    # it: alone, it ends on nothing. Expected for those, by net and length, and for nothing else.
+    import math
+    import re
+    escapes = [(i["net"], round(math.dist(i["start"], i["end"]) / 1e6, 4)) for i in b.data["copper"] if i.get("escape")]
+
     def expected(v):
         # Ports go nowhere on a lone block, except ground: the pours must join every GND pad.
         if v["type"] == "unconnected_items" and any("[GND]" in i["description"] for i in v.get("items", [])):
             return False
+        if v["type"] == "track_dangling":
+            m = re.match(r"Track \[([^]]*)\] on \S+, length ([0-9.]+) mm", v["items"][0]["description"])
+            return bool(m) and (m.group(1), float(m.group(2))) in escapes
         if v["type"] in EXPECTED:
             return True
         return v["type"] in EXPECTED_ONLY_ON_BACK and all("on B.Cu" in i["description"] for i in v.get("items", []))
@@ -69,4 +90,5 @@ def main(block_dir, override=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main(*sys.argv[1:3]))
+    args = [a for a in sys.argv[1:] if "=" not in a]
+    sys.exit(main(*args[:2], libs=dict(a.split("=", 1) for a in sys.argv[1:] if "=" in a)))

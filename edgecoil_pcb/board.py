@@ -277,6 +277,16 @@ def write_board(cfg, name, parts, h, keepouts, silk, extras, path, root):
     # Shells and other board-specific keepouts (a connector whose footprint draws no body, say).
     for hook in cfg.board_hooks:
         hook(board)
+    power_items = []
+    if cfg.power_copper:
+        from .power import lay as lay_power
+        power_items = lay_power(board, cfg.power_copper)
+    for ref, num in cfg.solid_pads:
+        fp = board.FindFootprintByReference(ref)
+        pads = [p for p in fp.Pads() if p.GetNumber() == num] if fp else []
+        if len(pads) != 1:
+            raise SystemExit(f"{name}: solid_pads names {ref} pad {num}, which the board doesn't have")
+        pads[0].SetLocalZoneConnection(pcbnew.ZONE_CONNECTION_FULL)
     if cfg.block_copper:
         from .blocks import lay
         lay(board, cfg.block_copper)
@@ -379,11 +389,11 @@ def write_board(cfg, name, parts, h, keepouts, silk, extras, path, root):
         x0, y0, x1, y1 = (pcbnew.ToMM(v) for v in (b.GetLeft(), b.GetTop(), b.GetRight(), b.GetBottom()))
         zone(board, None, None, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], via_free=True)
     board.Save(path)
-    if cfg.block_copper:
+    if cfg.block_copper or power_items:
         from .blocks import renetted
-        bad = renetted(path, cfg.block_copper)
+        bad = renetted(path, list(cfg.block_copper) + power_items)
         if bad:
-            raise SystemExit(f"{name}: block copper changed net on save (it touches another net's pad): {bad}")
+            raise SystemExit(f"{name}: block or power copper changed net on save (it touches another net's pad): {bad}")
     set_stackup(path, cfg.copper_layers)
 
 

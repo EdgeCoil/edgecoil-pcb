@@ -58,3 +58,121 @@ Blk3 io3 gnd I = {ilkio}*V(io3,gnd)/5
 .model LCRD D(BV=200 IBV=0.01u CJO=3p IS=1e-13 VJ=0.6 M=0.33 N=1 RS=0.31 TT=1n)
 .model ABD D(BV=6.0 IBV=1u CJO=230p IS=1e-11 VJ=0.6 M=0.33 N=1 RS=0.014 TT=1n)
 .ends
+
+* ==== From the date-label-printer simulation (sim3: post-layout, routed copper, 200 x 9 Monte Carlo), for the
+* usb-c-pd-sink, efuse-tps25947, buck-ap63203 and rtc-pcf85063a blocks. Each is that harness's model with its ground
+* made a pin (gnd) in place of node 0; otherwise unchanged. ngspice treats a node named gnd as ground, so in use that
+* pin is node 0 (as for LDL1117 above); renamed and held 2 V above node 0 in a check, the ports matched the originals
+* (eFuse network to 1e-10 V, HUSB238 to 1e-14 V, AP63203 to 1 uV). Behavioural, fitted to the guaranteed
+* datasheet figures quoted with each; ASSUMED marks a number no datasheet
+* gives.
+
+* ---------------- Schmitt state: V(st) -> 1 when V(x) > vr, -> 0 when V(x) < vf ----------------
+* (a state capacitor driven to the comparator's target, which reads the state itself: hysteresis without chatter)
+.subckt SCHMITT x st gnd params: vr=1.2 vf=1.09 w=0.005 tau=200n
+Bst gnd st I = (( V(st,gnd) > 0.5 ? 0.5*(1+tanh((V(x,gnd)-{vf})/{w})) : 0.5*(1+tanh((V(x,gnd)-{vr})/{w})) ) - V(st,gnd)) * 1e-6/{tau}
+Cst st gnd 1u
+Rst st gnd 1e9
+.ends SCHMITT
+
+* ---------------- TPS259474L eFuse (TI SLVSFC9C, May 2026) ----------------
+* IN 2.7-23 V operating, 28 V abs max (Table 6.1); RON 28.2 mohm typ (12 V, 3 A, 25 C), 45 max (-40..125 C).
+* EN/UVLO rising 1.183/1.20/1.223, falling 1.076/1.09/1.116 V; OVLO the same thresholds (TPS259470x/4x).
+* IN UVP rising 2.44-2.64 V. dVdt: SR[V/ms] = 2000 / CdVdt[pF] (Eq. 4) at IdVdt 2.21 uA typ (0.81..3.82 uA):
+*   scaled here by idvdt/2.21u. 474x restarts with dVdt after OVLO (Fig 7-7), unlike 470x.
+* Circuit breaker (474x): IOUT > ILIM starts ITIMER discharge (1.8 uA typ, 1.2..2.5) of CITIMER from ~2.57 V
+*   through dV 1.51 V (1.286..1.741); expiry -> off, latched (L variant) until EN < VSD(F) (0.45 V) or IN cycled.
+*   Fast trip at 2 x ILIM (scalable) after 500 ns (tFT is for IFT; ASSUMED the same for the scalable trip).
+* ILIM = 3340/RILM A typ (1.65 k -> 2.028, 750 -> 4.452 A); min x0.888, max x1.087 (Table 6.5 rows).
+* tOVLO: ASSUMED 5 us (tOVC is 5 us; the OVLO time is in the switching table).
+*   (Kept as sim3 ran it. The datasheet's timing table gives tOVLO 1.2 us typ: the model cuts later, the pessimistic side.)
+.subckt TPS259474 in out en ovlo gnd params: ron=0.0282 ilim=3.34 idvdt=2.21u cdvdt=3.3n citimer=10n iitimer=1.8u dvit=1.51
++ ven_r=1.20 ven_f=1.09 vov_r=1.20 vov_f=1.09
+Xen en enst gnd SCHMITT vr={ven_r} vf={ven_f}
+Xov ovlo ovst gnd SCHMITT vr={vov_r} vf={vov_f}
+Xuv in uvst gnd SCHMITT vr=2.53 vf=2.42 w=0.01
+* shutdown below VSD(F) clears the latch
+Bsd sdn gnd V = 0.5*(1+tanh((V(en,gnd)-0.6)/0.02))
+* on = enabled & not OV & IN above UVP & not latched
+Bon on gnd V = V(enst,gnd)*(1-V(ovst,gnd))*V(uvst,gnd)*(1-V(lat,gnd))
+Ron0 on gnd 1e9
+* slew-limited gate reference: rises at SR, follows IN when on; discharges at once when off
+Bramp gnd rmp I = V(on,gnd) > 0.5 ? min({idvdt/2.21u*2000/(cdvdt*1e12)*1e3}, max(-1e6, (V(in,gnd)-V(rmp,gnd))*1e6))*1e-6 : -V(rmp,gnd)*1e-3
+Crmp rmp gnd 1u
+Rrmp rmp gnd 1e9
+* pass FET: source follower on the ramp, limited by RON
+Bsw in out I = V(on,gnd)*max(0, min((V(in,gnd)-V(out,gnd))/{ron}, 50*(V(rmp,gnd)-V(out,gnd))))
+* circuit-breaker timer: V(tmr) falls from 0 while over ILIM at iitimer/citimer, recovers fast below it (ASSUMED)
+Bi isns gnd V = V(on,gnd)*max(0, min((V(in,gnd)-V(out,gnd))/{ron}, 50*(V(rmp,gnd)-V(out,gnd))))
+Risns isns gnd 1e9
+Btm gnd tmr I = (V(isns,gnd) > {ilim} ? {iitimer/citimer} : -V(tmr,gnd)*1e3) * 1u
+Ctm tmr gnd 1u
+Rtm tmr gnd 1e9
+* latch: set by timer expiry or by > 2 x ILIM for 500 ns; reset when EN < VSD
+Bft gnd ftc I = (V(isns,gnd) > {2*ilim} ? 2e6 : -V(ftc,gnd)*1e7) * 1u
+Cft ftc gnd 1u
+Rft ftc gnd 1e9
+Blat gnd lat I = ( (V(tmr,gnd) > {dvit} || V(ftc,gnd) > 1) ? (1-V(lat,gnd))*1e3 : (V(sdn,gnd) < 0.5 ? -V(lat,gnd)*1e3 : 0) ) * 1u
+Clat lat gnd 1u
+Rlat lat gnd 1e12
+* quiescent 610 uA max on IN
+Bq in gnd I = 610u * min(1, max(0, V(in,gnd)/0.5))
+.ends TPS259474
+
+* ---------------- AP63203 buck, fixed 3.3 V (Diodes DS41300) ----------------
+* VIN 3.8-32 V operating, 35 V abs max DC (40 V 400 ms); UVLO rising 3.30/3.50/3.70 V, hysteresis 440 mV typ;
+* VFB (output) 3.27/3.30/3.33 V CCM; IPEAK limit 2.5/2.8/3.1 A; fSW 1.1 MHz; Iq 22 uA typ.
+* Averaged model: the inductor current is a PI-controlled source (crossover ~fsw/20 ASSUMED, gp/wi below),
+* clamped to [0, ilim]; input current = output power / (VIN x eta). Soft start tss ASSUMED 2 ms (not in the
+* datasheet's tables). Not cycle-accurate: input ripple at 1.1 MHz is not modelled.
+.subckt AP63203 vin vout fb gnd params: vref=3.3 gp=9 wi=6e5 ilim=2.5 eta=0.85 tss=2m vuv=3.5 vhys=0.44
+Xuv vin uvst gnd SCHMITT vr={vuv} vf={vuv-vhys} w=0.01
+Bss gnd ss I = V(uvst,gnd) > 0.5 ? (V(ss,gnd) < {vref} ? {vref/tss}*1u : 0) : -V(ss,gnd)*1e-3
+Css ss gnd 1u
+Rss ss gnd 1e9
+* sim3: the loop regulates FB (U5 pin 1), which the board ties to 3V3 at the pin; the current goes into vout (L1.2).
+* Lumped, vout = fb. With copper they are separate nodes (cu.py).
+Be err gnd V = V(ss,gnd) - V(fb,gnd)
+Rfb fb gnd 1e9
+Bint gnd int I = V(uvst,gnd) > 0.5 ? ( (V(err,gnd) > 0 ? (V(int,gnd) < {ilim}) : (V(int,gnd) > 0)) ? {wi}*V(err,gnd)*1u : 0 ) : -V(int,gnd)*1e-3
+Cint int gnd 1u
+Rint int gnd 1e9
+* headroom: the high-side switch can't deliver above VIN (dropout ~ IL x 0.125 ohm, ignored)
+Bil il gnd V = V(uvst,gnd)*max(0, min({ilim}, {gp}*V(err,gnd) + V(int,gnd))) * min(1, max(0, (V(vin,gnd)-V(vout,gnd))/0.2))
+Ril il gnd 1e9
+Bout gnd vout I = V(il,gnd)
+Bin vin gnd I = (V(vout,gnd)*V(il,gnd)/(max(V(vin,gnd),1)*{eta}) + 22u) * min(1, max(0, V(vin,gnd)/0.5))
+.ends AP63203
+
+* ---------------- HUSB238 VIN load (Hynetek DS rev 2.5): 3.1 mA operating ----------------
+* OVP: 120 % (115..125) of the requested voltage, 50 us debounce typ (no min given); UVP disabled by default
+* (002 variant); VIN 30 V abs max, CC1/CC2 25 V. Measured, not modelled: the harness reports VBUS's time
+* above each threshold for comparison with the debounce.
+* sim3: VSET and ISET pins: each sources 100 uA (+-5 %, [H]) into its resistor once VIN is up (ASSUMED above 3 V);
+* the pin voltage is the request the board makes (VSET 0.606 V = 6.06 k = 9 V code; 1.40 V = 14.0 k = 15 V).
+.subckt HUSB238 vin vset iset gnd params: iset_ua=100
+Bop vin gnd I = 3.1m * min(1, max(0, V(vin,gnd)/0.5))
+Bvs gnd vset I = {iset_ua}*1e-6 * 0.5*(1+tanh((V(vin,gnd)-3)/0.1))
+Bis gnd iset I = {iset_ua}*1e-6 * 0.5*(1+tanh((V(vin,gnd)-3)/0.1))
+.ends HUSB238
+
+* ---------------- 2N7002 (CJ C8545; guaranteed: VDS 60 V, VGS +-20 V abs max; VGS(th) 1.0-2.5 V at 250 uA;
+* RDS(on) <= 5 ohm at VGS 10 V, <= 7.5 ohm at 4.5 V ASSUMED as the usual 2N7002 table; Ciss <= 50 pF, Coss <= 25 pF,
+* Crss <= 5 pF) -- level 1, kp set so RDS(on) at VGS 4.5 V, Vth 2.5 V is 7.5 ohm (kp = 1/(7.5 x 2.0) = 0.067):
+* the weakest guaranteed device. Body diode S->D. Nodes d g s.
+.subckt N2N7002 d g s params: vth=1.75 kp=0.067
+M1 d g s s NM L=1u W=1u
+.model NM NMOS(LEVEL=1 VTO={vth} KP={kp} LAMBDA=0.01)
+Cgs g s 40p
+Cgd g d 5p
+Cds d s 20p
+Dbd s d DBODY
+.model DBODY D(IS=1e-12 N=1.5 RS=0.5 CJO=10p)
+Rgs g s 1e12
+.ends N2N7002
+
+
+* BAV170 dual (both anodes on one node, common cathode on the other: wire it as two in parallel): low-leakage
+* diode, VF fitted to Nexperia's maxima (0.9 V at 1 mA, 1.0 V at 10 mA, 1.1 V at 50 mA; curve shape ASSUMED);
+* reverse leakage (nA) not modelled.
+.model DBAV170 D(IS=2e-10 N=2.0 RS=1.0 CJO=2p)

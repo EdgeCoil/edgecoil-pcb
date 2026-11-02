@@ -6,6 +6,8 @@
     python3 route.py --reroute <variant>   autoroute with Freerouting even so
     python3 route.py --freeze <variant>    record the board's current copper in <variant>/routing.json
     python3 route.py --patch <variant>     replay all but ROUTE_RIP and autoroute only what that leaves
+    python3 route.py --clean <variant>     drop routing.json's redundant segments, snapping short ones' neighbours (clean.py)
+    python3 route.py --restitch <variant>  on the generated board: replay, stitch, check the pours (restitch.py)
 
 (FREEROUTING=path/to/freerouting.jar, JAVA=path/to/java; ROUTE_DEBUG=1 prints why each autoroute
 attempt failed. ROUTE_RIP, for --patch: "NET,NET;NET:x0,y0,x1,y1" in mm, whole nets before the
@@ -438,8 +440,15 @@ def redundant(items, tol=2000):
     """Segments that add no copper: under 0.05 mm, or lying wholly along another of the same net and
     layer: inside its copper, or at least a track width long and less than a quarter width off its
     centreline (Freerouting leaves both, and dedupe only catches exact copies; cec-bridge's --patch
-    left a 0.5 mm one 0.05 mm off). A short jog to a via or pad beside a track is not redundant."""
-    segs = [i for i in items if "start" in i]
+    left a 0.5 mm one 0.05 mm off). A short jog to a via or pad beside a track is not redundant.
+    Returns (net, [x0, y0, x1, y1] in mm) for each; redundant_items() gives their indices."""
+    return [(items[k]["net"], [round(v / 1e6, 3) for v in items[k]["start"] + items[k]["end"]])
+            for k in redundant_items(items, tol)]
+
+
+def redundant_items(items, tol=2000):
+    """The indices in `items` of the segments redundant() reports."""
+    segs = [(n, i) for n, i in enumerate(items) if "start" in i]
 
     def along(pt, a, b, w):
         length = math.dist(a, b)
@@ -451,15 +460,15 @@ def redundant(items, tol=2000):
         return max((o["w"] - s["w"]) / 2, s["w"] / 4 if n >= s["w"] else 0)
 
     out = []
-    for k, s in enumerate(segs):
+    for k, (idx, s) in enumerate(segs):
         n = math.dist(s["start"], s["end"])
         if n < 50000 or any(o is not s and o["net"] == s["net"] and o["layer"] == s["layer"] and o["w"] >= s["w"]
                             # longer, or an exact copy listed earlier (round 18: a --patch left one)
                             and (math.dist(o["start"], o["end"]) > n
                                  or (j < k and {tuple(o["start"]), tuple(o["end"])} == {tuple(s["start"]), tuple(s["end"])}))
                             and along(s["start"], o["start"], o["end"], lim(s, o, n)) and along(s["end"], o["start"], o["end"], lim(s, o, n))
-                            for j, o in enumerate(segs)):
-            out.append((s["net"], [round(v / 1e6, 3) for v in s["start"] + s["end"]]))
+                            for j, (_, o) in enumerate(segs)):
+            out.append(idx)
     return out
 
 
@@ -625,6 +634,16 @@ def cli(cfg, args):
             freeze(cfg, n)
         elif mode == "--patch":
             patch(cfg, n, int(os.environ.get("ROUTE_ATTEMPTS", "8")))
+        elif mode == "--clean":
+            from .clean import main as clean_main
+            if clean_main([routing_file(cfg, n)]):
+                raise SystemExit(f"{n}: redundant segments left in routing.json")
+        elif mode == "--restitch":
+            from .restitch import restitch
+            _, lost, crowded, cut = restitch(cfg.base(n) + ".kicad_pcb", routing_file(cfg, n))
+            if lost > LOST_POUR or crowded or cut:
+                raise SystemExit(f"{n}: restitched board fails the pour checks")
+            print(f"{n}: restitched; route.py --freeze {n} keeps the new vias in routing.json")
         elif mode is None and os.path.exists(routing_file(cfg, n)):
             replay(cfg, n)
         else:

@@ -56,6 +56,8 @@ PROVENANCE = {
     "C354583": "jlc_verify 2026-11-02",  # CENKER CKCSA4020-4.7uH/M
     "C28323": "jlc_verify 2026-11-02",  # Samsung CL21B105KBFNNNE, 1 uF 50 V 0805
     "C507406": "jlc_verify 2026-11-02",  # Fenghua MFL12HR010FT, 10 mohm 2512 alloy shunt
+    # date-label-printer rev B, jlc_verify 2026-11-02: Basic divider values, C20 and C40 (50 V)
+    **{c: "jlc_verify 2026-11-02 (rev B)" for c in ("C4184", "C23242", "C22807", "C377773", "C29823")},
     # JST through-hole sockets (date-label-printer's assembled-connector option): centred and turned
     # 180 by ROTATE/OFFSET above.
     "C158012": "jlc_verify 2026-11-02",  # JST B2B-XH-A(LF)(SN)

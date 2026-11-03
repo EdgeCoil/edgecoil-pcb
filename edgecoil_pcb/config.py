@@ -59,9 +59,16 @@ class Config:
     back_text: Optional[Callable] = None   # (variant, w, h) -> [(x, y, text, size)]
     board_hooks: tuple = ()                # functions (board) run after the shell keepouts
     block_copper: list = field(default_factory=list)  # placed blocks' copper (Block.copper), laid locked
+    # Locked power copper (power.PowerCopper: wide runs, vias, Kelvin sense, ground vias, escapes), laid
+    # after board_hooks and before block_copper.
+    power_copper: Optional[object] = None
+    # Pads joined solid to the pours, (ref, pad number): where tracks round a pin leave room for fewer
+    # thermal spokes than the zone asks, on a reflowed part (a block lists its own: Block.solid_pads).
+    solid_pads: tuple = ()
     logo_svg: Optional[str] = None         # the board supplies its own mark; the toolkit ships none
     trim_silk: bool = True                 # clear footprint silk off pads and the edge (cec-bridge)
-    title_block: bool = True               # board title block: variant name, rev A
+    title_block: bool = True               # board title block: variant name and revision
+    revision: str = "A"                    # the title block's revision (and the default back text's)
     labels_avoid_marks: bool = True        # labels keep off footprints' own silk marks
     labels_avoid_own_outline: bool = True  # and off their own part's outline
     keycap: float = 18.0                   # a 1u MX keycap's square, which labels keep out of

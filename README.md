@@ -39,7 +39,8 @@ composed from the four blocks cut from it.
 
 `blocks/` holds circuit blocks: parts with their reviewed copper, a SPICE subcircuit and findings
 (see its README). Most use only KiCad's stock libraries; a block whose parts KiCad lacks names the
-board library they come from (block.json `local_libs`), and a board supplies its own copy.
+board library they come from (block.json `local_libs`) and carries a copy of just those parts in
+its `lib/`, which the block tests use; a board may use that copy or its own.
 
 ## Locked power copper
 
@@ -91,5 +92,7 @@ without one.
 ## Licences
 
 Code: MIT. Circuit blocks: CERN-OHL-S-2.0. The toolkit ships no third-party symbol or footprint
-library: blocks use KiCad's own, or name a board library a board supplies. It ships no logo either; a
+library. The one exception is a block's `lib/`: the LCSC/EasyEDA symbols and footprints of that
+block's own parts only, each directory saying where they came from. Their terms of reuse have not yet been
+reviewed, and must be before the toolkit is published. It ships no logo either; a
 board passes its own mark (`Config.logo_svg`).

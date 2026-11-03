@@ -23,6 +23,8 @@ import math
 import os
 import sys
 
+from . import symbols
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 BLOCKS = os.path.join(os.path.dirname(HERE), "blocks")
 
@@ -69,6 +71,13 @@ class Block:
                             mpn=p.get("mpn", ""), note=p.get("note", ""), lcsc=p.get("lcsc", ""),
                             side=p.get("side", "F")))
         return out
+
+    def bundled_libs(self):
+        """{nickname: dir} for each of the block's local_libs it carries a copy of in its lib/ (see
+        bundle()). A board passes its own copy instead with parts(libs=...)."""
+        d = os.path.join(os.path.dirname(self.path or ""), "lib")
+        return {n: d for n in self.data.get("local_libs", {})
+                if os.path.isdir(os.path.join(d, n + ".pretty"))}
 
     def board_refs(self, key, refs=None, prefix=""):
         """The board references of the block parts listed under `key` in block.json (e.g.
@@ -491,6 +500,99 @@ def selftest(block, cfg_libs=None, at=(60.0, 60.0)):
     return problems
 
 
+def _symbols(text):
+    """{name: text} of a .kicad_sym's top-level symbols, and the library header before them."""
+    out, i = {}, text.index("(", 1)
+    head = None
+    while True:
+        j = text.find("\n\t(symbol \"", i)
+        if j < 0:
+            return head, out
+        head = head if head is not None else text[:j + 1]
+        sym = symbols.block(text, j + 2)
+        name = sym[9:sym.index('"', 9)]
+        out[name] = "\t" + sym
+        i = j + 2 + len(sym)
+
+
+def bundle_files(block, nick, src_dir):
+    """{relative path: text} of the block's own copy of library `nick`: only the symbols and
+    footprints its parts name, byte for byte from the board library in src_dir."""
+    syms, fps = set(), set()
+    for p in block.data["parts"]:
+        for k, into in (("sym", syms), ("fp", fps)):
+            if p.get(k, "").startswith(nick + ":"):
+                into.add(p[k].split(":", 1)[1])
+    files = {}
+    for f in sorted(fps):
+        files[f"{nick}.pretty/{f}.kicad_mod"] = open(os.path.join(src_dir, f"{nick}.pretty", f + ".kicad_mod")).read()
+    if syms:
+        head, have = _symbols(open(os.path.join(src_dir, nick + ".kicad_sym")).read())
+        lost = sorted(syms - set(have))
+        if lost:
+            raise SystemExit(f"{block.name}: {nick}.kicad_sym has no symbol {lost}")
+        for n, t in have.items():
+            if "(extends" in t and n in syms:
+                raise SystemExit(f"{block.name}: symbol {n} extends another; bundle that one too")
+        files[nick + ".kicad_sym"] = head + "".join(have[n] + "\n" for n in sorted(syms)) + ")\n"
+    return files
+
+
+def bundle_cli(argv):
+    """python3 -m edgecoil_pcb.blocks bundle [--check] <block dir> nickname=dir ...
+
+    Copy into <block dir>/lib/ the symbols and footprints the block's parts take from a board's own
+    library (block.json local_libs), so the block carries them to the next board and CI can test
+    it. --check compares the copy with the board library instead and exits 1 on any difference."""
+    check = "--check" in argv
+    argv = [a for a in argv if a != "--check"]
+    d = os.path.abspath(argv[0])
+    b = Block(json.load(open(os.path.join(d, "block.json"))), os.path.join(d, "block.json"))
+    libs = dict(a.split("=", 1) for a in argv[1:])
+    missing = sorted(set(b.data.get("local_libs", {})) - set(libs))
+    if missing:
+        sys.exit(f"{b.name}: needs library {missing}: pass nickname=dir")
+    bad = 0
+    for nick, src in libs.items():
+        want = bundle_files(b, nick, src)
+        root = os.path.join(d, "lib")
+        have = set()
+        if os.path.isdir(root):
+            for dp, _, fs in os.walk(root):
+                have |= {os.path.relpath(os.path.join(dp, f), root) for f in fs
+                         if os.path.relpath(os.path.join(dp, f), root).startswith(nick)}
+        for rel, text in want.items():
+            path = os.path.join(root, rel)
+            if check:
+                if not os.path.exists(path) or open(path).read() != text:
+                    print(f"{b.name}: lib/{rel} differs from {src}"); bad += 1
+            else:
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                open(path, "w").write(text)
+        for rel in sorted(have - set(want)):
+            if check:
+                print(f"{b.name}: lib/{rel} is not used by the block"); bad += 1
+            else:
+                os.remove(os.path.join(root, rel))
+        print(f"{b.name}: {nick}: {len(want)} files {'checked' if check else 'written'}")
+    if not check:
+        _write_sums(os.path.join(d, "lib"))
+    sys.exit(1 if bad else 0)
+
+
+def _write_sums(root):
+    """lib/SHA256SUMS, so CI (which has no board library) can tell the copy is unedited:
+    `cd lib && sha256sum -c SHA256SUMS`."""
+    import hashlib
+    rows = []
+    for dp, _, fs in os.walk(root):
+        for f in fs:
+            rel = os.path.relpath(os.path.join(dp, f), root)
+            if rel not in ("SHA256SUMS", "README.md"):
+                rows.append(f"{hashlib.sha256(open(os.path.join(root, rel), 'rb').read()).hexdigest()}  {rel}")
+    open(os.path.join(root, "SHA256SUMS"), "w").write("\n".join(sorted(rows, key=lambda r: r[66:])) + "\n")
+
+
 def write_json(path, data):
     """block.json: one part and one copper item per line, so a re-cut reads as a small diff."""
     head = {k: v for k, v in data.items() if k not in ("parts", "copper")}
@@ -588,14 +690,17 @@ def cut_cli(argv):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) >= 3 and sys.argv[1] == "bundle":
+        bundle_cli(sys.argv[2:])
     if len(sys.argv) >= 2 and sys.argv[1] == "cut":
         cut_cli(sys.argv[2:])
         sys.exit(0)
     # python3 -m edgecoil_pcb.blocks selftest <block dir> [lib nickname=dir ...]
+    # (a library the block carries in its lib/ is used unless named)
     if len(sys.argv) >= 3 and sys.argv[1] == "selftest":
         d = os.path.abspath(sys.argv[2])
-        libs = dict(a.split("=", 1) for a in sys.argv[3:])
         b = Block(json.load(open(os.path.join(d, "block.json"))), os.path.join(d, "block.json"))
+        libs = {**b.bundled_libs(), **dict(a.split("=", 1) for a in sys.argv[3:])}
         missing = sorted(set(b.data.get("local_libs", {})) - set(libs))
         if missing:
             sys.exit(f"{b.name}: needs library {missing}: pass nickname=dir")

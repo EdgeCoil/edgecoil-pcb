@@ -38,24 +38,21 @@ jobs:
           apt-get install -y -qq --no-install-recommends ngspice librsvg2-bin python3-pil >/dev/null
           python3 -c "import pcbnew; print('pcbnew', pcbnew.Version())"
           ngspice -v | head -2
+      - name: Each block's bundled library parts are unedited copies
+        # A block whose parts KiCad lacks carries them in lib/ (edgecoil_pcb.blocks bundle); selftest and
+        # drc_block below use that copy. `bundle --check` against the source board proves it there.
+        run: |
+          for l in blocks/*/lib/; do (cd "$l" && sha256sum --quiet -c SHA256SUMS) || exit 1; echo "ok $l"; done
       - name: Each block alone, at every rotation
         run: |
           for b in blocks/*/; do
             [ -f "$b/block.json" ] || continue
-            libs=$(python3 -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1])).get("local_libs", {})))' "$b/block.json")
-            # A block whose parts come from its source board's own LCSC library (block.json local_libs) can't be
-            # placed without it, and the toolkit ships no third-party library: tested where that board lives.
-            if [ -n "$libs" ]; then echo "SKIP ${b}: needs its board's library ($libs)"; continue; fi
             python3 -m edgecoil_pcb.blocks selftest "$b" || exit 1
           done
       - name: KiCad DRC of each block alone
         run: |
           for b in blocks/*/; do
             [ -f "$b/block.json" ] || continue
-            libs=$(python3 -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1])).get("local_libs", {})))' "$b/block.json")
-            # A block whose parts come from its source board's own LCSC library (block.json local_libs) can't be
-            # placed without it, and the toolkit ships no third-party library: tested where that board lives.
-            if [ -n "$libs" ]; then echo "SKIP ${b}: needs its board's library ($libs)"; continue; fi
             python3 blocks/tests/drc_block.py "$b" || exit 1
           done
       - name: Each block's SPICE model matches its parts

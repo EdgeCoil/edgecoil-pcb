@@ -50,6 +50,10 @@ with tempfile.TemporaryDirectory() as tmp:
         ("selftest: a track moved 20 mm",
          ["python3", "-m", "edgecoil_pcb.blocks", "selftest", mutated_block(tmp, "ldo-ldl1117", move_track)]),
     ]
+    nolib = mutated_block(os.path.join(tmp, "nolib"), "rtc-pcf85063a", lambda b: None)
+    shutil.rmtree(os.path.join(nolib, "lib"))
+    cases.append(("selftest: a block's bundled library removed",
+                  ["python3", "-m", "edgecoil_pcb.blocks", "selftest", nolib]))
     d = mutated_block(os.path.join(tmp, "drc"), "ldo-ldl1117", stack_parts)
     cases.append(("drc_block: two parts stacked",
                   ["python3", "blocks/tests/drc_block.py", os.path.join(BLOCKS, "ldo-ldl1117"),
@@ -64,7 +68,8 @@ with tempfile.TemporaryDirectory() as tmp:
     cases.append(("check_models: R6 10k -> 11k", ["python3", os.path.join(copy, "tests", "check_models.py")]))
 
     # Each fault must be caught for its own reason, not by a crash: the expected words in the output.
-    expect = {cases[0][0]: "reaches no pad", cases[1][0]: "courtyard", cases[2][0]: " BAD "}
+    expect = {cases[0][0]: "reaches no pad", cases[1][0]: "needs library", cases[2][0]: "courtyard",
+              cases[3][0]: " BAD "}
     for label, cmd in cases:
         r = run(cmd)
         why = r.stdout + r.stderr

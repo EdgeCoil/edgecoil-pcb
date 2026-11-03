@@ -8,7 +8,8 @@ items) and there is no schematic to compare with.
     python3 blocks/tests/drc_block.py <block dir> [<block.json to use instead>] [nickname=dir ...]
 
 A block whose parts come from a board's own library (block.json "local_libs") needs that library:
-nickname=dir names the directory holding <nickname>.kicad_sym and <nickname>.pretty. The block's
+nickname=dir names the directory holding <nickname>.kicad_sym and <nickname>.pretty; the copy the
+block carries in its lib/ (edgecoil_pcb.blocks bundle) is used unless one is named. The block's
 "copper_layers", "min_track_width", "dru_rules" and "solid_pads" are applied as a board would.
 
 Exit 1 on any other violation. Needs KiCad 9 (pcbnew, kicad-cli) and KICAD_SYMBOL_DIR.
@@ -36,7 +37,7 @@ EXPECTED_ONLY_ON_BACK = {"isolated_copper"}
 
 def main(block_dir, override=None, libs=None):
     b = blocks.Block(json.load(open(override or os.path.join(block_dir, "block.json"))), os.path.join(block_dir, "block.json"))
-    libs = libs or {}
+    libs = {**b.bundled_libs(), **(libs or {})}
     missing = sorted(set(b.data.get("local_libs", {})) - set(libs))
     if missing:
         raise SystemExit(f"{b.name}: needs library {missing}: pass nickname=dir")

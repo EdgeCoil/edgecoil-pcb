@@ -17,11 +17,17 @@ joins block to block, so a new board's review covers the joins and whatever is n
 The last four were cut from the date-label-printer rev B (four layers; only efuse-tps25947's copper
 uses In2.Cu, the others need just a ground plane under them), and
 their parts not in KiCad's libraries (the HUSB238, TPS259474L, PCF85063A and its crystal, the
-inductor) come from that board's own LCSC library, nickname `lp` (block.json `local_libs`). Every simulated figure
+inductor) come from that board's own LCSC library, nickname `lp` (block.json `local_libs`); each block
+carries a copy of just its own `lp` parts in its `lib/` (see below). Every simulated figure
 their FINDINGS cite is in that board's committed `sim/results/sim4/`, traced to file and line in
-`block-figures-<block>.txt` there. CI runs selftest and drc_block only on blocks that need no board library; these
-four need `lp`, so CI skips them by name and they are tested where that board lives
-(`selftest`/`drc_block` with `lp=<board>/hardware/lib`). check_models runs on every block in CI.
+`block-figures-<block>.txt` there. CI runs selftest, drc_block and check_models on every block,
+these four with their bundled `lib/`.
+
+**A block's own library parts** go in its `lib/` with
+`python3 -m edgecoil_pcb.blocks bundle <dir> lp=<board library dir>`: only the symbols and
+footprints its parts name, byte for byte, plus `SHA256SUMS` (CI checks it) and a README saying where
+they came from. `bundle --check` compares the copy with a board library; re-bundle after any
+change to the board's library, and after each re-cut.
 
 Each directory holds:
 
@@ -92,11 +98,11 @@ repeatable:
    date-label-printer rebuilt from its four blocks, its remaining routing and its remaining locked
    copper is too** (3255 lines, 10 zone fills; schematic, BOM, CPL and pos byte-identical, with the
    parts kept in the committed order: the schematic's library-symbol table follows first use).
-2. **`python3 -m edgecoil_pcb.blocks selftest <dir> [lp=<library dir>]`** places the block alone at
+2. **`python3 -m edgecoil_pcb.blocks selftest <dir> [lp=<library dir>]`** (the block's `lib/` unless one is named) places the block alone at
    0, 90, 180 and 270 degrees and checks every internal net is one connected piece and every copper
    item reaches a pad, on every copper layer the block uses. It fails, as it should, on copper turned
    the wrong way, a track moved 1 mm and a track deleted.
-3. **`python3 tests/drc_block.py <dir> [lp=<library dir>]`** builds the block alone into a board
+3. **`python3 tests/drc_block.py <dir> [lp=<library dir>]`** (likewise) builds the block alone into a board
    through the toolkit (real rules and pours, the block's own layers, rules and solid pads) and runs
    KiCad's DRC: anything but a lone block's dangling ports (and its marked escapes) fails it, ground
    included. It fails, as it should, on a clearance cut to 0.05 mm and an overlapping courtyard. The

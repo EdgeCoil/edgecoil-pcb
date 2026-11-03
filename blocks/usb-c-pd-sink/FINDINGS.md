@@ -70,9 +70,10 @@ reusing this block for anything new.**
 - **The request, measured in simulation** (source board s0): VSET 1.400 V, ISET 2.00 V at every contract.
 - **It asks for ≥ 2.75 A at 15 V.** A source whose 15 V PDO offers less (a 30 W, 15 V 2 A charger) is
   not taken at 15 V: the _002 takes **the next lower PDO that offers the ISET current**, down to 5 V.
-  The source board's printer draws source peaks of **≈ 2.61 A** at worst (sim4 Monte Carlo: at the
-  12 V fallback 2.612 A lumped / 2.607 A on copper (R only); at 15 V 2.598 / 2.591 A), **≈ 0.14 A below
-  the 2.75 A code and ≈ 0.39 A below a 3 A contract**.
+  The source board's printer draws source peaks of **≈ 2.62 A** at worst (sim4 Monte Carlo at the 12 V
+  fallback's worst corner, 11.4 V on a stiff source: 2.625 A lumped / 2.617 A on copper (R only); 12.6 V
+  stiff 2.612 / 2.607 A; at 15 V 2.598 / 2.591 A), **≈ 0.13 A below the 2.75 A code and ≈ 0.38 A below a
+  3 A contract**.
 - **On a PDO mismatch the _002 takes the next lower PDO**, down to 5 V. Whatever this block feeds must
   tolerate 5, 9 and 12 V or refuse them in hardware (the source board: the eFuse's UVLO divider, on above
   9.87–10.59 V, so off at 5 and 9 V and on at 12 and 15 V).
@@ -93,8 +94,8 @@ reusing this block for anything new.**
   **0.76–1.25 µF at 15 V** and **1.41–2.34 µF at 5 V**. The Monte Carlo's `cink` 0.8–1.1 is narrower
   than that band. **Accepted for this revision** because VIN is not the
   only capacitance on the bus: on the source board VBUS also carries C21 1 µF + C22 100 nF (the eFuse's
-  IN) at **≈ 18.7 mΩ / 6.4 nH** of copper from U3 VIN (≈ 22 mm), and C40 4.7 µF + C41 100 nF (the buck's
-  VIN) at **≈ 28.7 mΩ / 8.3 nH** (≈ 19 mm); they hold VBUS through the µs-to-ms events the HUSB238
+  IN) at **≈ 18.7 mΩ / 6.4 nH** of copper from U3 VIN (≈ 22 mm in a straight line), and C40 4.7 µF + C41 100 nF (the buck's
+  VIN) at **≈ 28.7 mΩ / 8.3 nH** (≈ 19 mm in a straight line); they hold VBUS through the µs-to-ms events the HUSB238
   sees, though not its local high-frequency decoupling. A board without such parts on VBUS has only C20.
   **Next revision**: 2.2 µF 50 V X7R 1206, or 4.7 µF, re-checking cSnkBulk ≤ 10 µF.
 - **Capacitance on VBUS at attach** (USB's cSnkBulk, ≤ 10 µF until the contract): this block adds C20's
@@ -186,7 +187,7 @@ board's REQUIREMENTS, *Rev B*) is that revision; this block is re-cut from it.
 |---|---|---|
 | 1 | R20 (ISET) and R21 (VSET) on the wrong sides of U3; ISET crossed 4.8 mm under the exposed pad on In2 through two vias (9.9 mm on its node), making the block four-layer | **Resolved.** R20 sits beyond pin 9 and R21 + R22 beyond pin 8, all on F.Cu; ISET is 1.8 mm and VSET 1.4 mm. The block's copper needs no inner layer (its figures are still four-layer: header) |
 | 2 | C20 1.8 mm (pad edge) / 2.7 mm (track) from VIN; its ground loop closed only through the pour; the review asked for 2–4 vias in the exposed pad once In2 was clear | **Resolved, except the pad vias.** C20 at 90° left of pin 1, 1.23 mm of track to VIN (0.48 nH); its ground on a 0.4 mm locked track into the exposed pad (0.24 nH) and its own via. **Still open, declined:** no via in the exposed pad, because CC2 runs on In2 under it on the source board (above); the board's job covers a board that is clear there |
-| 3 | ISET 2 A against a 3 A charger | **Resolved.** ISET 20.0 kΩ: 2.75 or 3 A on guaranteed figures, ≈ 0.14 A above the printer's ≈ 2.61 A worst source peak (12 V MC) |
+| 3 | ISET 2 A against a 3 A charger | **Resolved.** ISET 20.0 kΩ: 2.75 or 3 A on guaranteed figures, ≈ 0.13 A above the printer's ≈ 2.62 A worst source peak (12 V MC, 11.4 V stiff) |
 | 4 | The interruption ring at 15 V was not simulated (hand estimate 20–25 V) | **Resolved on the source board** (s8, four-layer copper): 16.31 V on an enable cut, 21.20 V after a hard short (Monte Carlo worst 22.41 V copper, 23.63 V lumped). A different board must still judge its own (board's job) |
 | 5 | No system-level ESD on CC1/CC2 | **Open, as a decision.** The source board declined a discrete CC TVS (P8); integrated port protectors were not evaluated (next revision); the board's job keeps it |
 | 6 | R20's ground pad had no block copper | **Resolved.** R20's ground runs 1.1 mm to its own via |
@@ -211,3 +212,9 @@ temperature term, the parts table and the datasheet note.
 
 NOT CLEAN: 0 / 1 / 2, all applied: the worst source peak is the 12 V Monte Carlo's (≈ 2.61 A; margins
 ≈ 0.14 / 0.39 A), "copper" for print checks labelled R only, and a stale path in the source board's trace file.
+
+## Independent review round 4 (rev B cut)
+
+NOT CLEAN: 0 / 1 / 1, both applied. The Monte Carlo had not run the 12 V fallback's worst fixed corner
+(11.4 V, stiff); it was added (`p12_lo_st`, 200 + 200 runs, all pass): worst source peak 2.625 A, margins
+≈ 0.13 / 0.38 A. The 22 / 19 mm distances are labelled straight-line.

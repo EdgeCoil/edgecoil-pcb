@@ -65,7 +65,7 @@ vias; four layers: two EN tracks run on In2 and one VBUS link on B.Cu.
 | EN while printing, 12 V source at 11.4 V: 2 m in-spec (MC) / 2 m at 0.85 Ω (fixed) | 1.232 / 1.133 V | 1.116 V | 0.116 / **0.017 V**: see below |
 | OVLO while printing at 15.75 V (strobe release) | 0.988 V (MC 1.004 V) | 1.183 V (rising min) | 0.18 V (≈ 2.9 V at VBUS) |
 | OVLO when PEN cuts U4 at full current (VBUS rings to 16.33 V lumped / 16.31 V copper) | 1.021 / 1.019 V | 1.183 V | 0.16 V |
-| U4 current peak under 2.5 A strobes | 2.67 A lumped / 2.50 A copper (MC 2.52 / 2.52 A, 12 V sets) | 2.94 A (ILIM min with R28's 1 %) | 0.27 A; breaker timer never started |
+| U4 current peak under 2.5 A strobes | 2.67 A lumped / 2.50 A copper (MC 2.53 / 2.52 A, 12 V sets incl. 11.4 V stiff) | 2.94 A (ILIM min with R28's 1 %) | 0.27 A; breaker timer never started |
 | Inrush into the source board's 470 µF + its printer | 0.588 A (MC 0.624 A) | 0.8 A (own target; 2.75–3 A contract) | 0.18 A |
 | Output to 90 % after PEN, 15 V (15.75 V) / 12 V (12.6 V) | simulated (no tD,ON) 91.9 / 74.2 ms, MC with C24 ±10 % 96.2 / 76.6 ms; **+ tD,ON** 3.9–11.7 / 3.3–10 ms: **100–108 / 80–87 ms** (hand stack 112 / 90 ms) | F7 waits 130 / 110 ms | ≥ 22 / 23 ms (18 / 20 ms on the hand stack) |
 | EN during the plug-in ring, PEN not driven, Q1 Vth up to 2.5 V | 0.539 V copper (MC 0.372 V) | 1.183 V | 0.64 V |
@@ -97,7 +97,7 @@ minimum; C23's 0.88 ms filter probably absorbs such short excursions, but that i
 off. The real part (SLVSFC9C 7.3.5.4, Fig. 7-11) retries after a ~30 µs de-glitch into current limit, and a
 persistent short stays there until **thermal shutdown** (7.3.5.4 does not mention ITIMER; on the 474x ITIMER
 discharges only while IOUT > ILIM, 7.3.5.2, so the ≤ 16 ms blanking need not end it). With OUT shorted the limit
-also folds back below VOUT < VFB (1.9 V typ, 6.5) to a lower, unspecified threshold (7.3.5.3 note 2). So the
+also folds back below VOUT < VFB (1.9 V typ, 6.5) to a lower, unspecified threshold (7.3.5.3 note 2: that is the 470x/2x section; the 474x's post-trip limit is 7.3.5.4's, and VFB in 6.5 is not variant-restricted). So the
 current is at most ILIM (2.94–3.67 A, an upper bound; foldback lowers it), with ~15 V across U4, for as long as
 thermal shutdown takes. The source sees up to ≈ 3.7 A plus the board's own load, above a 2.75–3 A contract: it may
 trip the source's OCP or a PD hard reset, and **the 3V3 hold that s8 shows is not proven for that phase**. The
@@ -243,7 +243,7 @@ guaranteed device) is added there too.
 ## Open for the next cut (from the rev B reviews)
 
 1. **Model the fast trip's retry into current limit** (SLVSFC9C 7.3.5.4, Fig. 7-11: ~30 µs de-glitch, then
-   current limit with foldback below VFB, 7.3.5.3 note 2, until thermal shutdown; ITIMER runs only while IOUT >
+   current limit with foldback below VFB (7.3.5.3 note 2: that is the 470x/2x section; the 474x's post-trip limit is 7.3.5.4's, and VFB in 6.5 is not variant-restricted), until thermal shutdown; ITIMER runs only while IOUT >
    ILIM, 7.3.5.2) and re-run the source board's s8 hard short: source current,
    VBUS and the 3V3 hold through that phase.
 2. **R34 150 kΩ** puts Q1's gate on the 2N7002's guaranteed 5 V row wherever EN can switch on.
@@ -267,3 +267,8 @@ guaranteed device) is added there too.
   restated from SLVSFC9C 7.3.5.2, 7.3.5.3 note 2 and 7.3.5.4 (at most ILIM with foldback, until thermal shutdown,
   not bounded by ITIMER; the conclusion stands); OVLO's 0.5–1.5 V recommended range against the 28 V fault; the
   fault row's Monte Carlo OVLO; the contract as 2.75–3 A; the model's fast-trip and tOVLO citations (`models.inc`).
+
+## Independent review round 4 (rev B cut)
+
+NOT CLEAN: 0 / 0 / 2 suggestions, both applied: the foldback citation's variant scope stated, and a
+tolerance label in the source board's trace file corrected.

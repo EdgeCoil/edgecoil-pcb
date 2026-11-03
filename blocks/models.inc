@@ -113,7 +113,7 @@ Rtm tmr gnd 1e9
 * latch: set by timer expiry or by > 2 x ILIM for 500 ns; reset when EN < VSD
 * NOT MODELLED: after the fast trip the real part retries after a ~30 us de-glitch into current limit, and a persistent
 * short stays there until thermal shutdown (SLVSFC9C 7.3.5.4, Fig. 7-11); the limit folds back below VOUT < VFB (1.9 V
-* typ) to an unspecified lower level (7.3.5.3 note 2), and on the 474x ITIMER discharges only while IOUT > ILIM
+* typ) to an unspecified lower level (7.3.5.3 note 2, the 470x/2x section; 7.3.5.4 covers the 474x), and on the 474x ITIMER discharges only while IOUT > ILIM
 * (7.3.5.2), so ITIMER need not end it. This model latches off at the fast trip itself, so a hard output short's
 * current-limit phase (<= ILIM, until thermal shutdown) is missing.
 Bft gnd ftc I = (V(isns,gnd) > {2*ilim} ? 2e6 : -V(ftc,gnd)*1e7) * 1u

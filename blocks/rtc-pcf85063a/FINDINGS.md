@@ -51,7 +51,7 @@ The sum, for whoever fits a cell and measures it. Assumptions, all stated:
 - **Start voltage, in board terms: ΔV = (3V3's minimum − 0.9 V) − 0.9 V.** The first 0.9 V is D2's
   only guaranteed drop (VF ≤ 0.9 V at 1 mA), the second the RTC's timekeeping minimum. 3V3's minimum here
   is the lowest it may sit at when power fails: on the source board, **3.211 V**, sim4's minimum with
-  routed copper (the Wi-Fi-burst minimum; printing with copper is 3.214 V; idle, the buck holds 3.27–3.33 V, so this is the
+  routed copper (sim4's minimum with routed copper: Wi-Fi bursts 3.2109 V at a fixed corner, printing 3.2112 V in the Monte Carlo; idle, the buck holds 3.27–3.33 V, so this is the
   conservative choice). Start **≥ 2.31 V**, **ΔV ≈ 1.41 V**. Typically it starts near 2.8 V (ΔV ≈ 1.9 V).
 - **Capacitance** at −20 % (0.376 F), new, **fully charged** (see the last point).
 
@@ -233,4 +233,9 @@ NOT CLEAN: 0 blockers, 2 should-fix, 2 suggestions.
 
 ## Independent review round 3 (rev B cut)
 
-NOT CLEAN: 0 / 1 / 2, all applied: two stale rows in the source board's rev B response table (F12 polling; Y1's 2.45 mm traces), the model's VF gap 0.05–0.10 V, the 3.211 V attribution (Wi-Fi bursts), and R6 no longer "open" in the part row.
+NOT CLEAN: 0 / 1 / 2, all applied: two stale rows in the source board's rev B response table (F12 polling; Y1's 2.45 mm traces), the model's VF gap 0.05–0.10 V, the 3.211 V attribution (corrected again in round 4: Wi-Fi and printing both reach it in sim4), and R6 no longer "open" in the part row.
+
+## Independent review round 4 (rev B cut)
+
+NOT CLEAN: 0 / 1 / 2, all applied: round 3's "printing 3.214 V" was a sim3 figure (sim4 printing reaches
+3.2112 V, Wi-Fi 3.2109 V); the source board's DBAV170 comment and the charge deck's VF-gap wording aligned.

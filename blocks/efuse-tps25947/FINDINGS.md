@@ -25,7 +25,8 @@ vias; four layers: two EN tracks run on In2 and one VBUS link on B.Cu.
   tD,ON + tR; tD,ON 1.32 ms at 1.8 nF, 2.35 ms at 3.3 nF and 12 V, 3.69 ms at 3.3 nF and 23 V, **typical only**):
   ≈ 3.3 ms (12 V) / 3.9 ms (15 V) typical at 4.7 nF, ≈ 10 / 11.7 ms scaled to IdVdt's minimum and C24 +10 %. **The
   model has no tD,ON**, so every simulated rise time below omits it. **ITIMER** C25 10 nF ±10 %: breaker blanking
-  4.6–16 ms.
+  4.6–16 ms. **C24** is C53987 (0603B472K500NT, 4.7 nF 50 V X7R ±10 %, JLC catalogue): 50 V against TI's ≥ VIN
+  + 5 V for the dVdt capacitor, 33 V at the 28 V fault.
 - **The fail-safe enable**: Q1 (2N7002) holds EN low while its gate is held up from VBUS (R29/R34 100 kΩ/100 kΩ:
   VBUS/2, ≥ 4.84 V wherever EN could reach its rising threshold; 14 V at a 28 V fault). The fitted part (CJ, C8545)
   guarantees RDS(on) ≤ 7 Ω only at VGS 5 V / 50 mA (and ≤ 5 Ω at 10 V); it has no 4.5 V row, so 4.84 V is not on a
@@ -59,7 +60,7 @@ vias; four layers: two EN tracks run on In2 and one VBUS link on B.Cu.
 
 | What | Worst | Limit (guaranteed) | Margin |
 |---|---|---|---|
-| EN at a 9 V source (9.45 V), PEN high: the output must stay off | 1.112 V nominal (sim); **1.139 V worst stack** (9.45 V / 8.3515 + 7.4 mV leakage) | 1.183 V (rising min) | **0.044 V, the tightest** (0.42 V at VBUS) |
+| EN at a 9 V source (9.45 V), PEN high: the output must stay off | 1.112 V nominal (sim); **1.132 V worst stack** (9.45 V / 8.3515 + 0.88 mV pin leakage, 0.1 µA × 8.82 kΩ) | 1.183 V (rising min) | **0.051 V, the tightest** (0.42 V at VBUS) |
 | EN while printing 2.5 A peaks, 15 V source at 14.25 V, 2 m cable at 0.85 Ω (VBUS 12.03 V) | 1.470 V (MC, in-spec cables: 1.56 V) | 1.116 V (falling max) | 0.35 V |
 | EN while printing, 12 V source at 11.4 V: 2 m in-spec (MC) / 2 m at 0.85 Ω (fixed) | 1.232 / 1.133 V | 1.116 V | 0.116 / **0.017 V**: see below |
 | OVLO while printing at 15.75 V (strobe release) | 0.988 V (MC 1.004 V) | 1.183 V (rising min) | 0.18 V (≈ 2.9 V at VBUS) |
@@ -100,9 +101,9 @@ may trip the source's OCP or a PD hard reset, and **the 3V3 hold that s8 shows i
 ring figures above stand (they come from the trip itself). Declined for this cut; the first open item for the next
 (below).
 
-**The hard short's falling slew** (−50 V/µs over 100 ns in the Monte Carlo, −61 V/µs at a fixed corner, copper) is a
-model artefact: the eFuse model has no current clamp before its fast trip, so it dumps VBUS's capacitors into the
-short at 110–217 A for 0.6 µs. TI's 10 V/µs IN limit is for the supply; an output short is the case the part is
+**The hard short's falling slew** (−50 V/µs over 100 ns in the Monte Carlo, −61 V/µs at a fixed corner, copper) is
+an unclamped, pessimistic bound: the real part's saturation current before tFT (500 ns) is not modelled, so the
+model dumps VBUS's capacitors into the short at 110–217 A for 0.6 µs. It is to be measured at bring-up. TI's 10 V/µs IN limit is for the supply; an output short is the case the part is
 characterised for. The ring figure is the pessimistic bound; the copper's nH lower it by 1.3 V.
 
 The Monte Carlo drew CdVdt's ±10 % through IdVdt, so the F7 times include it (not X7R's temperature drift), the
@@ -140,7 +141,7 @@ conservative side.
   ~10 V, whatever firmware does). Rev A's first design pulled Q1's gate up to the logic rail (a dead rail enabled
   the output); the VBUS pull-up has passed every audit and simulation since.
 - **PG and PGTH unused and open**; no test pad (PG means nothing with PGTH floating). Declined on the source board
-  for want of a GPIO (finding 4 below).
+  for want of a GPIO (finding 4 below): that is the board's reason, not the block's (next revision: an optional port).
 - **No OVLO filter capacitor** (the rev A review's optional ≤ 1 nF): the margin is now 0.18 V at the pin (2.9 V at
   VBUS), and a filter would only slow the cut.
 - **No Schottky from OUT to GND** (TI suggests one for inductive loads): the source board's load has 470 µF of bulk
@@ -154,8 +155,11 @@ conservative side.
   board's): kept, and documented above.
 - **TP3 on ILM**: TI keeps ILM's parasitic capacitance under 50 pF. A pad is a few pF; a scope probe (10–15 pF) is
   fine, a long lead may not be.
-- **EN and OVLO pull-ups below TI's ≥ 350 kΩ for reverse-polarity protection** (R23 75 kΩ, R25 150 kΩ, and R29
-  100 kΩ onto Q1's gate): fine behind USB-C, which cannot reverse; a board behind a barrel jack must revisit it.
+- **EN/UVLO and OVLO tops below TI's ≥ 350 kΩ** (R23 75 kΩ, R25 150 kΩ). SLVSFC9C 6.3 footnote (2) asks for it on
+  a pull-up straight to IN, for supplies above 5 V or reverse polarity, to limit the pin current. Here they are
+  dividers that hold EN ≤ 3.35 V and OVLO ≤ 1.78 V even at a 28 V fault (simulated), under EN's 5 V recommended
+  maximum and both pins' 6.5 V absolute maximum, so no pin current needs limiting. Reverse polarity cannot occur
+  behind USB-C; a board behind a barrel jack must revisit it.
 - **The model's tOVLO is ASSUMED 5 µs**; the datasheet's timing table gives 1.2 µs typ. The model cuts later than the
   part, which overstates the output's overshoot at a fault: the pessimistic side. Kept as sim3 and sim4 ran it.
 - **The model's 2N7002** (`N2N7002`, kp 0.067, sized for an ASSUMED 7.5 Ω at 4.5 V) gives 6.0 Ω at VGS 5 V and Vth
@@ -171,6 +175,8 @@ conservative side.
 - **PEN's GPIO through reset**: the simulation assumes it high-impedance (R35 holds Q2 off); confirm no internal
   pull-up on the chosen pin.
 - **TP3** against a known load current, if the current limit's reading is to be used.
+- **U4 IN falling slew during an output short** (a shorting load at OUT, scope on IN): the simulated figure is an
+  unclamped bound above TI's 10 V/µs.
 
 ## The board's job
 
@@ -204,7 +210,7 @@ conservative side.
 
 One fresh reviewer read the rev A cut alone, with TI's datasheet (SLVSFC9C, May 2026): NOT CLEAN, 0 blockers,
 8 should-fix, 6 suggestions. The source board took the layout findings into its rev B; this cut is that layout.
-**The rev B block has not itself had an independent review**: rev B's board passed its DFM audits and sim4.
+The rev B block has since had its own independent reviews (rounds 1 and 2, below).
 
 | # | Rev A finding | Rev B |
 |---|---|---|
@@ -219,7 +225,7 @@ One fresh reviewer read the rev A cut alone, with TI's datasheet (SLVSFC9C, May 
 | 9 | Fast trip at 2 × ILIM is typical only | **Still true** (stated above). The rev B review found the model latches off at the fast trip where the part retries into current limit for up to ITIMER: open, first item for the next cut |
 | 10 | Model's tOVLO ASSUMED 5 µs, datasheet 1.2 µs typ | **Still open, model unchanged** (pessimistic side; Accepted). Separately, sim4 found and fixed a latch fault in the model (below) |
 | 11 | TP3 and EN figures should be guaranteed ranges | **Resolved** (above) |
-| 12 | ≥ 350 kΩ pull-ups on EN/OVLO for reverse polarity | **Still open, accepted** behind USB-C (Accepted) |
+| 12 | ≥ 350 kΩ pull-ups on EN/OVLO for reverse polarity | **Accepted**: dividers hold both pins within ratings at 28 V; reverse polarity cannot occur behind USB-C (Accepted) |
 | 13 | 21 × 21 mm of copper for a 2 × 2 mm IC | **Resolved**: 20.0 × 14.0 mm, the fail-safe in ≈ 10 × 11 mm left of U4 |
 | 14 | One OUT capacitor, half its value at 15 V | **Resolved**: C32 at OUT's pad end plus C31 (≈ 1.2 µF together at 15 V) |
 
@@ -229,7 +235,7 @@ U4 ~1 % on into a short. It now settles in ~100 ns and holds itself once past 0.
 Only fault paths set the latch, so no non-fault figure moves. The AO3400A model (`NAO3400`: level 1, the weakest
 guaranteed device) is added there too.
 
-## Open for the next cut (from the rev B review, round 1)
+## Open for the next cut (from the rev B reviews)
 
 1. **Model the fast trip's retry into current limit** (SLVSFC9C 7.3.5.4, Fig. 7-11: ~30 µs de-glitch, then ILIM
    until ITIMER or thermal shutdown, then the latch) and re-run the source board's s8 hard short: source current,
@@ -238,3 +244,16 @@ guaranteed device) is added there too.
 3. **R28 and C25 returned to U4's GND pin** by the shortest path.
 4. **0.27–0.3 mm necks** out of IN and OUT under a U4-local 0.15 mm clearance rule.
 5. **The power path at TI's 2 × full load** inside the block (both outer layers, stitched).
+6. **PG/PGTH as an optional port**, with a PGTH divider and a PG pull-up footprint, so a board with a free GPIO can
+   see an OVLO trip, a latch-off or a UVLO drop-out.
+
+## Independent review of the rev B block
+
+- **Round 1**: NOT CLEAN, 0 blockers, 6 should-fix, 5 suggestions. Answered above: tD,ON added to F7 (now ≥ 130 /
+  110 ms); the model's latch-off at the fast trip versus the part's retry into current limit (declined for this
+  cut, open item 1); Q1's drive argued from need (the fitted 2N7002 has no 4.5 V row); the 9 V row's worst stack;
+  2 × full-load width as the board's job; "on at 12 V" resting on C23; figures reconciled with sim4's outputs.
+- **Round 2**: NOT CLEAN, 0 blockers, 3 should-fix, 3 suggestions, wording and numbers only. Answered: the 9 V
+  stack's leakage term taken at the pin (1.132 V, margin 0.051 V); this section; the reason for accepting the
+  < 350 kΩ divider tops; the short's falling slew called an unclamped bound, with a bring-up measurement; C24's
+  50 V rating; PG/PGTH as a next-revision option.

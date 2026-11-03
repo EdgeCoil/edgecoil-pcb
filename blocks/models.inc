@@ -129,7 +129,7 @@ Rlat lat gnd 1e12
 Bq in gnd I = 610u * min(1, max(0, V(in,gnd)/0.5))
 .ends TPS259474
 
-* ---------------- AP63203 buck, fixed 3.3 V (Diodes DS41300) ----------------
+* ---------------- AP63203 buck, fixed 3.3 V (Diodes DS41326 Rev 3-2, Nov 2024: AP63200/01/03/05) ----------------
 * VIN 3.8-32 V operating, 35 V abs max DC (40 V 400 ms); UVLO rising 3.30/3.50/3.70 V, hysteresis 440 mV typ;
 * VFB (output) 3.27/3.30/3.33 V CCM; IPEAK limit 2.5/2.8/3.1 A; fSW 1.1 MHz; Iq 22 uA typ.
 * Averaged model: the inductor current is a PI-controlled source (crossover ~fsw/20 ASSUMED, gp/wi below),

@@ -54,7 +54,7 @@ figures (3.5 V rising, 0.44 V hysteresis; the guaranteed rising window is 3.3–
 4.44 V minimum simulated.
 
 **A loop-independent bound on the burst droop**: ΔV ≈ ΔI / (2π · fc · Cout). With a slow 20 kHz crossover, a 0.32 A
-step and the Monte Carlo's lowest 19.6 µF, ΔV ≈ 130 mV, so 3V3 ≥ ~3.13 V from VFB's 3.27 V minimum (and the
+step and the guaranteed worst 18.5 µF (below), ΔV ≈ 138 mV, so 3V3 ≥ ~3.12 V from VFB's 3.27 V minimum (and the
 load's own −13 mV): 3V3 holds above 3.0 V whatever the ASSUMED loop, as long as it crosses over at 20 kHz or above.
 
 **Current: validated by simulation to 345 mA bursts and 0.1 A average**; the part is rated 2 A. Nothing in the block's
@@ -84,7 +84,7 @@ fault and short ran R + L. Figures not in the source board's `sim/RESULTS.md` si
 FB end (−13 mV at 345 mA, not corrected). **3V3's maximum while printing is not reported by sim4** (it records the
 minimum only); the Wi-Fi 3.369 V and the fault's 3.318 V are the maxima on record.
 
-**Capacitance after DC bias** (the source board's curves; C40's is ASSUMED: 0.89x at 5 V, 0.60x at 15 V):
+**Capacitance after DC bias** (the source board's curves; C40's is ASSUMED: 0.90x at 5 V, 0.60x at 15 V):
 
 | | 5 V | 12 V | 15 V | 21–22.5 V ring | 28 V fault |
 |---|---|---|---|---|---|
@@ -112,6 +112,10 @@ the datasheet's suggested 22 µF (see *Accepted*).
   Isat of 4 A**, until hiccup ends it after 2 ms. Accepted: a fault case, brief, a shielded part that saturates
   softly, and the hiccup ends it. The inductor's datasheet is not on file, so whether 4 A is a minimum or a typical
   figure is unknown. **Next revision: an inductor with Isat ≥ 4.5 A.**
+- **C43/C44's ground path** (round 2, recorded for the next revision, not changed): each cap's GND pad reaches the
+  plane through a ~0.95 mm × 0.25 mm stub and one 0.3 mm via, ~1 nH each, about twice the caps' own ESL. Harmless at
+  0.1 A average and 0.35 A peaks. **Next revision: the via at the pad edge, or the stub ≥ 0.5 mm wide, and consider two
+  vias per cap** (the datasheet's layout note 2).
 - **L1**: ripple about 0.50 A at 15 V (0.56 A at 28 V), below the datasheet's 30–50 % of 2 A (a larger inductance than
   its table's 3.9 µH: less ripple, a slower slew into load steps; the simulated bursts pass). DCR 110 mΩ, a little over
   the 100 mΩ it suggests "for highest efficiency" (load here ~0.1 A average).
@@ -167,3 +171,11 @@ bound, the 28 V bench ceiling and the model's UVLO.
 | 8 | `min_track_width` 0.12 vs a 0.187 mm track | **Resolved** (0.18 since rev A; narrowest now 0.25 mm) |
 | 9 | Minimum VIN at 4.75 V on a 2 m cable not reported; dropout not guaranteed | **Partly**: sim4 reports VBUS 4.44 V min there (3V3 3.211 V); U5's pin is a few mV lower. The model still ignores dropout: bring-up item |
 | 10 | Minor: ripple ~0.66 A p-p worst, short-circuit overshoot ~3.7 A vs Isat 4.0 A, the table's 3.9 µH | **Unchanged** (same L1 and U5); the short-circuit bound is now taken as 4.2–4.4 A and accepted (see *Accepted*); Isat ≥ 4.5 A for the next revision |
+
+## Independent review round 2
+
+NOT CLEAN on suggestions only (0 blockers, 0 should-fix, 3 suggestions), all applied: the AP63203 model's datasheet
+citation in the shared `models.inc` corrected to Diodes DS41326 Rev 3-2; C40's 5 V DC-bias factor written as the
+model's own 0.90x, C41 → U5 as 1.9 mΩ (the source board's extraction: 1.86 mΩ), and the droop bound taken at the
+guaranteed worst 18.5 µF (ΔV ≈ 138 mV, 3V3 ≥ ~3.12 V); C43/C44's ground stubs and single vias recorded for the next
+revision (*Accepted*).

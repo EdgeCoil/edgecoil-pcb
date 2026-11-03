@@ -40,8 +40,8 @@ could fetch it. These claims rest on the source board's REQUIREMENTS.md (P1, P3,
 row 1) and on rev A's block review, which checked them against the datasheet: the absolute maxima (VIN and
 GATE 30 V, CC1/CC2 25 V, SDA/SCL 6 V); the pins' 95–105 µA source current; the VSET and ISET code tables
 (the code voltages below, VSET open = 20 V, ISET open = 3.25 A); the _002 options (next lower PDO on a
-mismatch, GATE on at power-up, OTP 150 °C); OVP at 115–125 % with a 50 µs typical debounce; ±6 kV HBM on CC;
-I²C address 0x08; and that an I²C PDO request overrides VSET. **Re-check them against the datasheet before
+mismatch, GATE on at power-up, OTP 150 °C); the 1 µF VIN capacitance it calls for; OVP at 115–125 %
+with a 50 µs typical debounce; ±6 kV HBM on CC; I²C address 0x08; and that an I²C PDO request overrides VSET. **Re-check them against the datasheet before
 reusing this block for anything new.**
 
 ## Accepted, and carried by the block
@@ -50,9 +50,9 @@ reusing this block for anything new.**
   to **8.19 V** on the source board's (four-layer) copper, 8.55 V lumped; Monte Carlo worst 8.29 V copper,
   8.74 V lumped: 21 V inside VIN's 30 V.
 - **The interruption ring at 15 V is simulated** (the source board's s8, four-layer copper): its eFuse
-  opening mid-print on its enable rings VBUS to **16.33 V**; a hard short at the load, cut by the eFuse's
-  fast trip, rings it to **21.20 V on copper** (22.47 V lumped; Monte Carlo worst **22.41 V copper,
-  23.63 V lumped**). That is 6.4–8.8 V inside VIN's 30 V and 1.4–3.8 V inside the 25 V the source board
+  opening mid-print on its enable rings VBUS to **16.31 V on copper** (16.33 V lumped); a hard short at
+  the load, cut by the eFuse's fast trip, rings it to **21.20 V on copper** (22.47 V lumped; Monte Carlo
+  worst **22.41 V copper, 23.63 V lumped**). That is 6.4–8.8 V inside VIN's 30 V and 1.4–3.8 V inside the 25 V the source board
   asks of every VBUS part. The figure belongs to that board's downstream (cable, eFuse, bulk) and stackup,
   not to this block.
 - **The codes on guaranteed figures**: the pins source 95–105 µA and the resistors are 1 % (R21 + R22 in
@@ -70,8 +70,9 @@ reusing this block for anything new.**
 - **The request, measured in simulation** (source board s0): VSET 1.400 V, ISET 2.00 V at every contract.
 - **It asks for ≥ 2.75 A at 15 V.** A source whose 15 V PDO offers less (a 30 W, 15 V 2 A charger) is
   not taken at 15 V: the _002 takes **the next lower PDO that offers the ISET current**, down to 5 V.
-  The source board's printer draws source peaks of **2.58 A** lumped / **2.56 A** on copper at 15 V
-  (sim4 s2), 0.17–0.19 A below the 2.75 A code and 0.42 A below a 3 A contract.
+  The source board's printer draws source peaks of **≈ 2.60 A** at worst (sim4 Monte Carlo at 15 V:
+  2.598 A lumped, 2.591 A on copper; the 12 V fallback's fixed corners 2.600 A), **≈ 0.15 A below the
+  2.75 A code and ≈ 0.40 A below a 3 A contract**.
 - **On a PDO mismatch the _002 takes the next lower PDO**, down to 5 V. Whatever this block feeds must
   tolerate 5, 9 and 12 V or refuse them in hardware (the source board: the eFuse's UVLO divider, on above
   9.87–10.59 V, so off at 5 and 9 V and on at 12 and 15 V).
@@ -80,22 +81,24 @@ reusing this block for anything new.**
     6.97 / 7.93 µs): 40 µs inside a typical figure. A part whose real debounce were shorter than that
     would trip at plug-in and fail or restart the negotiation: safe (the load stays off at 5 V), but the
     board would not come up on such a part and source.
-  - **At 15 V** (OVP from 17.25 V) a strobe's release peaks at 15.8 V (1.45 V clear); the hard short's
+  - **At 15 V** (OVP from 17.25 V) a strobe's release peaks at **15.88 V** (Monte Carlo worst, lumped,
+    15.75 V source on 2 m; 1.37 V clear); the hard short's
     ring spends **≤ 5.62 µs** above 17.25 V on copper (5.92 µs lumped; Monte Carlo 3.84 / 4.40 µs). A
     part with a debounce that short would act after a downstream short, when the load is already cut:
     a lost contract, not a stress.
 - **C20 is 2.2 µF X5R, and its 15 V value is below the HUSB238's 1 µF on part of its band.** On the DC-bias
   curve the simulation uses (**assumed**: Samsung publishes none for this part) it is **≈ 0.99 µF at 15 V
-  and ≈ 1.85 µF at 5 V**. On its guaranteed band, ±10 % (catalogue) × X5R ±15 % over temperature
-  (0.765–1.265), that is **0.76–1.25 µF at 15 V** and **1.41–2.34 µF at 5 V**. The Monte Carlo's
-  `cink` 0.8–1.1 is narrower than that guarantee. **Accepted for this revision** because VIN is not the
+  and ≈ 1.85 µF at 5 V**. Its tolerance band, ±10 % (catalogue) × X5R ±15 % over temperature
+  (0.765–1.265), is guaranteed only at 0 V bias; applied to the assumed DC-bias curve it gives
+  **0.76–1.25 µF at 15 V** and **1.41–2.34 µF at 5 V**. The Monte Carlo's `cink` 0.8–1.1 is narrower
+  than that band. **Accepted for this revision** because VIN is not the
   only capacitance on the bus: on the source board VBUS also carries C21 1 µF + C22 100 nF (the eFuse's
   IN) at **≈ 18.7 mΩ / 6.4 nH** of copper from U3 VIN (≈ 22 mm), and C40 4.7 µF + C41 100 nF (the buck's
   VIN) at **≈ 28.7 mΩ / 8.3 nH** (≈ 19 mm); they hold VBUS through the µs-to-ms events the HUSB238
   sees, though not its local high-frequency decoupling. A board without such parts on VBUS has only C20.
   **Next revision**: 2.2 µF 50 V X7R 1206, or 4.7 µF, re-checking cSnkBulk ≤ 10 µF.
 - **Capacitance on VBUS at attach** (USB's cSnkBulk, ≤ 10 µF until the contract): this block adds C20's
-  2.2 µF, 1.41–2.34 µF at 5 V (above).
+  2.2 µF, 1.41–2.34 µF at 5 V on the assumed bias curve (above).
 - **CC1/CC2 have no external ESD**: the block relies on the HUSB238's own pins, rated ±6 kV HBM only (a
   handling figure, not a system-level IEC 61000-4-2 rating; the datasheet gives none), with U3's exposed
   pad as their ground return. The source board decided this (its requirement P8): a CC protector must
@@ -105,7 +108,8 @@ reusing this block for anything new.**
   The receptacle's grounded shell makes first contact.
 - **JLC**: C7471904 placed by `jlc_verify`, pad by pad; C377773, C4184, C22797 and C21190 likewise.
 - **Copper (source board, four-layer, sim4's `cu.py`)**: C20 → U3 VIN **2.44 mΩ / 0.48 nH** (1.23 mm,
-  0.25 mm wide); C20's ground → U3's exposed pad 0.20 mΩ / 0.24 nH (0.4 mm wide), plus C20's own ground
+  0.25 mm wide); C20's ground → U3's exposed pad 0.20 mΩ with the front pour (1.07 mΩ for the track alone) / 0.24 nH
+  (0.4 mm wide), plus C20's own ground
   via. Board side: J1 → C20 4.33 mΩ / 1.11 nH, J1 → U3 VIN 6.77 mΩ / 1.58 nH (rev A: 16.6 mΩ / 3.7 nH,
   through In2). ISET leaves pin 9 straight out to R20 in 1.8 mm, VSET pin 8 to R21 in 1.4 mm, both 0.2 mm
   on F.Cu; R20 and R22 each end on their own ground via.
@@ -165,7 +169,7 @@ cut from it; it is not made here.
   must look at that.
 - **A hardware interlock downstream** that keeps the load off at any fallback contract it cannot use
   (the source board: off at 5 and 9 V, on at 12 and 15 V).
-- **Bulk on VBUS near the block** if the board has none (C20 alone is 0.76–1.25 µF at 15 V, above).
+- **Bulk on VBUS near the block** if the board has none (C20 alone is ≈ 0.76–1.25 µF at 15 V, above).
 - **Specify the charger by the load's real peak**: this block admits only a 15 V source rated for
   ≥ 2.75 A at 15 V; a weaker one is taken at a lower voltage (above). The source board documents a 45 W
   (15 V 3 A) charger.
@@ -182,11 +186,23 @@ board's REQUIREMENTS, *Rev B*) is that revision; this block is re-cut from it.
 |---|---|---|
 | 1 | R20 (ISET) and R21 (VSET) on the wrong sides of U3; ISET crossed 4.8 mm under the exposed pad on In2 through two vias (9.9 mm on its node), making the block four-layer | **Resolved.** R20 sits beyond pin 9 and R21 + R22 beyond pin 8, all on F.Cu; ISET is 1.8 mm and VSET 1.4 mm. The block's copper needs no inner layer (its figures are still four-layer: header) |
 | 2 | C20 1.8 mm (pad edge) / 2.7 mm (track) from VIN; its ground loop closed only through the pour; the review asked for 2–4 vias in the exposed pad once In2 was clear | **Resolved, except the pad vias.** C20 at 90° left of pin 1, 1.23 mm of track to VIN (0.48 nH); its ground on a 0.4 mm locked track into the exposed pad (0.24 nH) and its own via. **Still open, declined:** no via in the exposed pad, because CC2 runs on In2 under it on the source board (above); the board's job covers a board that is clear there |
-| 3 | ISET 2 A against a 3 A charger | **Resolved.** ISET 20.0 kΩ: 2.75 or 3 A on guaranteed figures, above the printer's 2.56–2.58 A source peaks |
-| 4 | The interruption ring at 15 V was not simulated (hand estimate 20–25 V) | **Resolved on the source board** (s8, four-layer copper): 16.33 V on an enable cut, 21.20 V after a hard short (Monte Carlo worst 22.41 V copper, 23.63 V lumped). A different board must still judge its own (board's job) |
+| 3 | ISET 2 A against a 3 A charger | **Resolved.** ISET 20.0 kΩ: 2.75 or 3 A on guaranteed figures, ≈ 0.15 A above the printer's ≈ 2.60 A worst source peak |
+| 4 | The interruption ring at 15 V was not simulated (hand estimate 20–25 V) | **Resolved on the source board** (s8, four-layer copper): 16.31 V on an enable cut, 21.20 V after a hard short (Monte Carlo worst 22.41 V copper, 23.63 V lumped). A different board must still judge its own (board's job) |
 | 5 | No system-level ESD on CC1/CC2 | **Open, as a decision.** The source board declined a discrete CC TVS (P8); integrated port protectors were not evaluated (next revision); the board's job keeps it |
 | 6 | R20's ground pad had no block copper | **Resolved.** R20's ground runs 1.1 mm to its own via |
 | 7 | `min_track_width` did not match the narrowest track | **Resolved.** The block's tracks are generator-locked at 0.20 mm or wider (no router necking); 0.18 mm allows them |
 | 8 | The copper extent was measured on centrelines | **Resolved** (since rev A's cut): measured to the copper's edges, above |
-| 9 | C20 0603 1 µF X5R was ≈ 0.22 µF at 15 V; the review suggested 1–2.2 µF 50 V X7R 0805 | **Partly resolved.** C20 is 2.2 µF 50 V **X5R** 0805 (CL21A225KBQNNNE): 0.76–1.25 µF at 15 V on its guaranteed band (≈ 0.99 µF on an assumed bias curve), below 1 µF in the low half. Accepted for this revision with the eFuse's and buck's capacitors on the same bus; next revision X7R 1206 or 4.7 µF (above) |
+| 9 | C20 0603 1 µF X5R was ≈ 0.22 µF at 15 V; the review suggested 1–2.2 µF 50 V X7R 0805 | **Partly resolved.** C20 is 2.2 µF 50 V **X5R** 0805 (CL21A225KBQNNNE): 0.76–1.25 µF at 15 V (its tolerance band on an assumed bias curve; ≈ 0.99 µF nominal), below 1 µF in the low half. Accepted for this revision with the eFuse's and buck's capacitors on the same bus; next revision X7R 1206 or 4.7 µF (above) |
 | 10 | Board items: I²C pull-ups from a rail live without VBUS; VSET's switch run high-impedance | **Pull-ups: open, in the board's job.** **VSET: resolved**, there is no switch and VSET is internal (1.4 mm to R21); keeping switching edges off it stays in the board's job |
+
+## Independent review round 2 (rev B cut)
+
+NOT CLEAN, 0 blockers, 1 should-fix, 6 suggestions, all on figure labelling and wording; applied above:
+the source-peak margin now cites the Monte Carlo worst (≈ 2.60 A: ≈ 0.15 A to the 2.75 A code, ≈ 0.40 A
+to 3 A); the enable-cut ring is 16.31 V on copper (16.33 V lumped); the strobe-release peak is the
+simulated 15.88 V; C20's ground figure says the pour carries it (1.07 mΩ for the track alone); C20's
+15 V band is labelled as its tolerance band on an assumed bias curve; and the HUSB238's 1 µF VIN figure is
+listed under *Datasheet not on file*. **Declined:** putting C20's MPN into block.json, which changes only
+by a re-cut; the MPN is in this file and in model.inc. Round 1 (5 should-fix, 6 suggestions) added the
+stackup caveat, the exposed-pad reasoning, C20's band and next-revision part, the VSET-open fault, the
+temperature term, the parts table and the datasheet note.

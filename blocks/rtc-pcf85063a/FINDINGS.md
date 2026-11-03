@@ -48,33 +48,38 @@ The sum, for whoever fits a cell and measures it. Assumptions, all stated:
   with CLKOUT off (Table 40, at VDD 3.3 V with SCL/SDA at VDD or VSS; sample-tested, note 4; specified
   with a 60 kΩ crystal where the SC-32S is 70 kΩ max). SDA and SCL leak up to ±0.3 µA each with the bus
   at 0 V (Table 40, ILI; 3V3 off, pull-ups to 3V3). D2 leaks ≤ 80 nA (BAV170 IR at 150 °C; 5 nA at 25 °C).
-- **Start voltage, in board terms: ΔV = (3V3's DC minimum − 0.9 V) − 0.9 V.** The first 0.9 V is D2's
-  only guaranteed drop (VF ≤ 0.9 V at 1 mA), the second the RTC's timekeeping minimum. On the source
-  board (3V3 ≥ 3.23 V): start **≥ 2.33 V**, **ΔV ≈ 1.43 V**. Typically it starts near 2.8 V (ΔV ≈ 1.9 V).
+- **Start voltage, in board terms: ΔV = (3V3's minimum − 0.9 V) − 0.9 V.** The first 0.9 V is D2's
+  only guaranteed drop (VF ≤ 0.9 V at 1 mA), the second the RTC's timekeeping minimum. 3V3's minimum here
+  is the lowest it may sit at when power fails: on the source board, **3.211 V**, sim4's minimum with
+  routed copper (while printing and in Wi-Fi bursts; idle, the buck holds 3.27–3.33 V, so this is the
+  conservative choice). Start **≥ 2.31 V**, **ΔV ≈ 1.41 V**. Typically it starts near 2.8 V (ΔV ≈ 1.9 V).
 - **Capacitance** at −20 % (0.376 F), new, **fully charged** (see the last point).
 
-| EDLC leakage | Hold-up (0.376 F, ΔV 1.43 V) |
+| EDLC leakage | Hold-up (0.376 F, ΔV 1.41 V) |
 |---|---|
-| 0 | ≈ 127 h |
+| 0 | ≈ 125 h |
 | 5 µA | ≈ 24 h |
 | 10 µA | ≈ 13 h |
 
-- **24 h allows ~5.0 µA of EDLC leakage at 40 °C** on these figures. EDLCs commonly lose ~30 % of
-  capacitance by end of life; at 0.263 F the allowance falls to ~3.2 µA. At the typical start (ΔV 1.9 V)
+- **24 h allows ~5.0 µA (4.96 µA) of EDLC leakage at 40 °C** on these figures. EDLCs commonly lose ~30 % of
+  capacitance by end of life; at 0.263 F the allowance falls to ~3.1 µA. At the typical start (ΔV 1.9 V)
   it is ~7 µA new.
 - **The sum assumes a full charge.** τ = R52 × C51 = 47 s, but a coin EDLC's ESR and charge
   redistribution take far longer, and its leakage just after charging is far above the steady-state
   figure. Give it a few minutes powered for a useful charge; measure the hold-up after a long powered
   spell, or its decay rate over a day and redo the sum above.
-- **A simulated hold-up must start C51 at the guaranteed start voltage** (`.ic`), not at the model's
+- **A simulated hold-up must start C51 at the guaranteed start voltage** (`.ic`, 2.31 V here), not at the model's
   operating point: the DBAV170 model's VF sits 0.04–0.10 V below the BAV170's maxima, so from 3.3 V it
   settles VRTC at ~2.85 V, which flatters the hold-up (`model.inc`).
 
 ## Power-up: the RTC is unreachable for the first minute or so with C51 empty
 
-With C51 empty, VRTC rises with τ = R52 × C51 ≈ 47 s (56 s at +20 %). It passes the RTC's 0.9 V after
-~23–27 s and **the 1.8 V where its I²C is specified after ~67 s (80 s at +20 %)** on the block model; the
-model's diode drops less than the guaranteed maximum, so allow **~70–85 s**. Until then U9 NACKs or
+With C51 empty, VRTC rises with τ = R52 × C51 (47 s at 0.47 F). It reaches **the 1.8 V where U9's I²C
+is specified after roughly 1–2.5 minutes**: 67 s on the block model at 0.47 F and 3V3 3.3 V; 80 s at
+0.47 F with 3V3 at its 3.211 V minimum and the diode 0.1 V worse than the model (at its maxima); **144 s**
+at +80 % (0.846 F; coin EDLCs are commonly −20/+80 %), the slowest case. The timekeeping 0.9 V comes
+after roughly a third of that. **No firmware timing depends on this number**: F12 polls until the RTC
+answers (below). Until then U9 NACKs or
 answers unreliably: **a CLKOUT-off or time write made at boot lands on an unpowered RTC**, which then
 comes up with CLKOUT on (costing backup current) and the oscillator-stop flag set, and the first SNTP
 time written in that window is lost.
@@ -204,7 +209,7 @@ NOT CLEAN: 1 blocker, 5 should-fix, 4 suggestions.
 
 | # | Finding | Response |
 |---|---|---|
-| B1 | With C51 empty, VRTC needs ~70–85 s to reach I²C's 1.8 V; a boot-time CLKOUT-off (and the first SNTP write) lands on an unpowered RTC | **Fixed at the source board** (F12: poll every 10 s, then on every SNTP sync, F13 on any fault); stated here (Power-up, The board's job) |
+| B1 | With C51 empty, VRTC needs ~70–85 s (revised in round 2: roughly 1–2.5 min) to reach I²C's 1.8 V; a boot-time CLKOUT-off (and the first SNTP write) lands on an unpowered RTC | **Fixed at the source board** (F12: poll every 10 s, then on every SNTP sync, F13 on any fault); stated here (Power-up, The board's job) |
 | S1 | Datasheets not on file | **Fixed**: the PCF85063A, SC-32S and BAV170 sheets are on file for the audit; figures cite their tables and sections |
 | S2 | A V-type cell's shadow is a 13 × 5–7 mm rectangle, outside the courtyard circle; ~14–15 mm tall; on the source board it can touch a neighbouring pad flush | **Stated** (The board's job); the source board fits it 1–2 mm proud. **Footprint change declined for this cut** (it needs a re-cut); next revision: a courtyard rectangle for the vertical cell |
 | S3 | The rev A ±ppm figures could not be reproduced; stray and temperature missing | **Recomputed** with stated assumptions, stray and the parabola; the Offset register covers it |
@@ -212,5 +217,16 @@ NOT CLEAN: 1 blocker, 5 should-fix, 4 suggestions.
 | S5 | DBAV170 sits 0.04–0.10 V below the maxima it claims to fit | **Fixed** in the shared model's comment; a hold-up run starts C51 at the guaranteed start voltage (here, `model.inc`) |
 | G1 | TP6 cannot take a discharge resistor (no GND pad beside it) | **Declined for this revision**: clip a resistor across C51's pads, or from TP6 to any GND; wording fixed. Next revision: a DNP 0603 from VRTC to GND |
 | G2 | No CLKOUT test pad | **Declined**: probe U9 pin 7 directly, with a bring-up build that leaves CLKOUT on. Next revision: a pad |
-| G3 | Start voltage and the charging bound not in board terms | **Fixed**: ΔV = (3V3 DC min − 0.9 V) − 0.9 V; ≤ 27 mA at VF ≥ 0.6 V, 33.7 mA / 114 mW hard bound |
+| G3 | Start voltage and the charging bound not in board terms | **Fixed**: ΔV = (3V3 minimum − 0.9 V) − 0.9 V; ≤ 27 mA at VF ≥ 0.6 V, 33.7 mA / 114 mW hard bound |
 | G4 | Source-board wording ("Schottky"; Monte Carlo) | Fixed at the source board / in the README |
+
+## Independent review round 2 and what was done
+
+NOT CLEAN: 0 blockers, 2 should-fix, 2 suggestions.
+
+| # | Finding | Response |
+|---|---|---|
+| S1 | "~70–85 s" was not a bound on the block's own assumptions (diode at its maxima, 3V3 minimum, −20/+80 % EDLCs give up to ~144 s) | **Fixed**: stated as roughly 1–2.5 min from a swept run (0.376–0.846 F, 3V3 3.3 / 3.211 V, diode +0 / +0.1 V), and F12 polls until the RTC answers, so nothing depends on the number |
+| S2 | The figure trace pointed at uncommitted decks with absolute paths | **Fixed**: the decks and outputs sit with the source board's sim4 results, with relative includes (the block's few lines inlined) |
+| G1 | "3V3's DC minimum 3.23 V" named the wrong quantity | **Fixed**: the start uses sim4's copper minimum, 3.211 V, named as such: 2.31 V, ΔV 1.41 V, 4.96 µA allowance |
+| G2 | Source-board record | Fixed at the source board |

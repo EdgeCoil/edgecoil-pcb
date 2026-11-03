@@ -39,9 +39,25 @@ jobs:
           python3 -c "import pcbnew; print('pcbnew', pcbnew.Version())"
           ngspice -v | head -2
       - name: Each block alone, at every rotation
-        run: for b in blocks/*/; do [ -f "$b/block.json" ] && python3 -m edgecoil_pcb.blocks selftest "$b"; done
+        run: |
+          for b in blocks/*/; do
+            [ -f "$b/block.json" ] || continue
+            libs=$(python3 -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1])).get("local_libs", {})))' "$b/block.json")
+            # A block whose parts come from its source board's own LCSC library (block.json local_libs) can't be
+            # placed without it, and the toolkit ships no third-party library: tested where that board lives.
+            if [ -n "$libs" ]; then echo "SKIP ${b}: needs its board's library ($libs)"; continue; fi
+            python3 -m edgecoil_pcb.blocks selftest "$b" || exit 1
+          done
       - name: KiCad DRC of each block alone
-        run: for b in blocks/*/; do [ -f "$b/block.json" ] && python3 blocks/tests/drc_block.py "$b"; done
+        run: |
+          for b in blocks/*/; do
+            [ -f "$b/block.json" ] || continue
+            libs=$(python3 -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1])).get("local_libs", {})))' "$b/block.json")
+            # A block whose parts come from its source board's own LCSC library (block.json local_libs) can't be
+            # placed without it, and the toolkit ships no third-party library: tested where that board lives.
+            if [ -n "$libs" ]; then echo "SKIP ${b}: needs its board's library ($libs)"; continue; fi
+            python3 blocks/tests/drc_block.py "$b" || exit 1
+          done
       - name: Each block's SPICE model matches its parts
         run: python3 blocks/tests/check_models.py
       - name: Negative controls - each test must fail on a planted fault

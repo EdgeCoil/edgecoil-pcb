@@ -596,6 +596,9 @@ if __name__ == "__main__":
         d = os.path.abspath(sys.argv[2])
         libs = dict(a.split("=", 1) for a in sys.argv[3:])
         b = Block(json.load(open(os.path.join(d, "block.json"))), os.path.join(d, "block.json"))
+        missing = sorted(set(b.data.get("local_libs", {})) - set(libs))
+        if missing:
+            sys.exit(f"{b.name}: needs library {missing}: pass nickname=dir")
         probs = selftest(b, {k: (os.path.relpath(v, d), "") for k, v in libs.items()})
         print("\n".join(probs) if probs else f"{b.name}: copper connected at 0/90/180/270")
         sys.exit(1 if probs else 0)

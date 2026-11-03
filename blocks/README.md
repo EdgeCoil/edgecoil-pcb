@@ -19,7 +19,9 @@ uses In2.Cu, the others need just a ground plane under them), and
 their parts not in KiCad's libraries (the HUSB238, TPS259474L, PCF85063A and its crystal, the
 inductor) come from that board's own LCSC library, nickname `lp` (block.json `local_libs`). Every simulated figure
 their FINDINGS cite is in that board's committed `sim/results/sim4/`, traced to file and line in
-`block-figures-<block>.txt` there.
+`block-figures-<block>.txt` there. CI runs selftest and drc_block only on blocks that need no board library; these
+four need `lp`, so CI skips them by name and they are tested where that board lives
+(`selftest`/`drc_block` with `lp=<board>/hardware/lib`). check_models runs on every block in CI.
 
 Each directory holds:
 

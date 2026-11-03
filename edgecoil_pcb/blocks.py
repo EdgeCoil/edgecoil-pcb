@@ -481,6 +481,10 @@ def selftest(block, cfg_libs=None, at=(60.0, 60.0)):
             if len(roots) > 1:
                 problems.append(f"rot {rot}: internal net {net} in {len(roots)} pieces")
         for i, (k, o) in enumerate(nodes):
+            # A lone ground via (the cut keeps a locked GND via no track reaches, e.g. a crystal's guard)
+            # joins the pour, which this check does not model; drc_block, with the pours filled, covers it.
+            if k == "cu" and o.GetClass() == "PCB_VIA" and o.GetNetname() == "GND":
+                continue
             if k == "cu" and not any(find(j) == find(i) for j, (kj, _) in enumerate(nodes) if kj == "pad"):
                 e = ends(o)[0]
                 problems.append(f"rot {rot}: {o.GetNetname()} copper at ({e.x / 1e6:.3f}, {e.y / 1e6:.3f}) reaches no pad")

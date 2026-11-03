@@ -80,39 +80,39 @@ VlB ilB 0 PWL(0 25m 20m 25m 20.0005m 84m 20.1m 84m 20.1005m 345m 20.4m 345m 20.4
         tran="100n 21m", compare=["v(enA) v(enB)", "v(vddA) v(vddB)", "i(VsA) i(VsB)"],
         planted=("R6 10k -> 11k", "R6 3v3 en 10000", "R6 3v3 en 11000")),
     "usb-c-pd-sink": dict(
-        block="XA cc1A cc2A 0 sclA sdaA vbusA vsetA usb_c_pd_sink",
-        flat="""XC20 vbusB 0 MLCC c0=1.06e-06 v0=7.1 m=1.8 k=1 esr=20m vop=9
-R20 isetB 0 10500
-R21 vsetB 0 14000
+        block="XA cc1A cc2A 0 sclA sdaA vbusA usb_c_pd_sink",
+        flat="""XC20 vbusB 0 MLCC c0=2.2e-06 v0=13.3 m=1.7 k=1 esr=15m vop=15
+R20 isetB 0 20000
+R21 vsetB vset_mB 13000
+R22 vset_mB 0 1000
 XU3 vbusB vsetB isetB 0 HUSB238 iset_ua=100
-Rlk_iset isetB 0 1e9""",
-        stim="""* VBUS 0 -> 5 V at 1 ms, the contract's 9 V at 10 ms, behind 0.1 ohm; the source board's 9 V switch (10.7k across
-* VSET) closes at 6 ms; CC and I2C held by 1 Mohm (the model leaves them as ports only)
-VsA sA 0 PWL(0 0 1m 0 1.5m 5 10m 5 10.5m 9)
-VsB sB 0 PWL(0 0 1m 0 1.5m 5 10m 5 10.5m 9)
+Rlk_iset isetB 0 1e9
+Rlk_vset vsetB 0 1e9
+Rlk_vset_m vset_mB 0 1e9""",
+        stim="""* VBUS 0 -> 5 V at 1 ms, the contract's 15 V at 10 ms, behind 0.1 ohm; CC and I2C held by 1 Mohm (the model
+* leaves them as ports only)
+VsA sA 0 PWL(0 0 1m 0 1.5m 5 10m 5 10.5m 15)
+VsB sB 0 PWL(0 0 1m 0 1.5m 5 10m 5 10.5m 15)
 RsA sA vbusA 0.1
 RsB sB vbusB 0.1
-R22A vsetA swA 10700
-R22B vsetB swB 10700
-BswA swA 0 I = V(swA)*(time > 6m ? 20 : 1e-9)
-BswB swB 0 I = V(swB)*(time > 6m ? 20 : 1e-9)
 Rc1 cc1A 0 1meg
 Rc2 cc2A 0 1meg
 Rc3 sclA 0 1meg
 Rc4 sdaA 0 1meg""",
-        tran="1u 14m", compare=["v(vsetA) v(vsetB)", "v(xa.iset) v(isetB)", "i(VsA) i(VsB)"],
-        planted=("R21 14.0k -> 14.7k", "R21 vset gnd {14000*k_r21}", "R21 vset gnd {14700*k_r21}")),
+        tran="1u 14m", compare=["v(xa.vset) v(vsetB)", "v(xa.iset) v(isetB)", "i(VsA) i(VsB)"],
+        planted=("R22 1k -> 2k", "R22 vset_m gnd {1000*k_r22}", "R22 vset_m gnd {2000*k_r22}")),
     "efuse-tps25947": dict(
-        block="XA 0 ovlA penA vbusA vpoA efuse_tps25947",
-        flat="""XC21 vbusB 0 MLCC c0=1e-06 v0=20 m=1.7 k=1 esr=15m vop=9
-XC22 vbusB 0 MLCC c0=1e-07 v0=20 m=1.5 k=1 esr=30m vop=9
+        block="XA 0 penA vbusA vpoA efuse_tps25947",
+        flat="""XC21 vbusB 0 MLCC c0=1e-06 v0=20 m=1.7 k=1 esr=15m vop=15
+XC22 vbusB 0 MLCC c0=1e-07 v0=20 m=1.5 k=1 esr=30m vop=15
 XC23 efuse_enB 0 MLCC c0=1e-07 v0=20 m=1.5 k=1 esr=30m vop=1.2
-XC31 vpoB 0 MLCC c0=1e-06 v0=20 m=1.7 k=1 esr=15m vop=9
+XC31 vpoB 0 MLCC c0=1e-06 v0=20 m=1.7 k=1 esr=15m vop=15
+XC32 vpoB 0 MLCC c0=1e-06 v0=20 m=1.7 k=1 esr=15m vop=15
 XQ1 efuse_enB q1_gB 0 N2N7002 vth=1.75 kp=0.067
-XQ2 q1_gB q2_gB 0 N2N7002 vth=1.75 kp=0.067
-R23 vbusB efuse_enB 48700
+XQ2 q1_gB q2_gB 0 NAO3400 vth=1.05
+R23 vbusB efuse_enB 75000
 R24 efuse_enB 0 10000
-R25 vbusB ovlB 76800
+R25 vbusB ovlB 150000
 R26 ovlB 0 10000
 R29 vbusB q1_gB 100000
 R30 penB q2_gB 1000
@@ -121,48 +121,49 @@ R35 q2_gB 0 100000
 XU4 vbusB vpoB efuse_enB ovlB 0 TPS259474 ron=0.0282 ilim=3.34 idvdt=2.21u cdvdt=4.7e-09 citimer=1e-08 iitimer=1.8u dvit=1.51
 + ven_r=1.20 ven_f=1.09 vov_r=1.20 vov_f=1.09
 Rlk_efuse_en efuse_enB 0 1e9
+Rlk_ovlo ovlB 0 1e9
 Rlk_q1_g q1_gB 0 1e9
 Rlk_q2_g q2_gB 0 1e9""",
-        stim="""* a 9 V contract at 1 ms behind 50 mohm; PEN (IO10) high at 3 ms; a 10 ohm + 100 uF load; the source steps to
-* 12 V at 40 ms (past OVLO's 10.4 V) and back at 50 ms (dVdt restart); PEN low at 75 ms
-VsA sA 0 PWL(0 0 1m 0 1.5m 9 40m 9 40.05m 12 50m 12 50.05m 9)
-VsB sB 0 PWL(0 0 1m 0 1.5m 9 40m 9 40.05m 12 50m 12 50.05m 9)
+        stim="""* 9 V at 1 ms behind 50 mohm with PEN (IO10) high at 3 ms: below EN/UVLO, so the output stays off; the contract
+* steps to 15 V at 10 ms (on, dVdt ramp); a 20 ohm + 100 uF load; the source steps to 21 V at 55 ms (past OVLO's
+* 19.2 V) and back at 60 ms (falls below 17.4 V: dVdt restart on its own); PEN low at 110 ms
+VsA sA 0 PWL(0 0 1m 0 1.5m 9 10m 9 10.1m 15 55m 15 55.05m 21 60m 21 60.05m 15)
+VsB sB 0 PWL(0 0 1m 0 1.5m 9 10m 9 10.1m 15 55m 15 55.05m 21 60m 21 60.05m 15)
 RsA sA vbusA 0.05
 RsB sB vbusB 0.05
-VpA penA 0 PWL(0 0 3m 0 3.01m 3.3 75m 3.3 75.01m 0)
-VpB penB 0 PWL(0 0 3m 0 3.01m 3.3 75m 3.3 75.01m 0)
-RlA vpoA 0 10
-RlB vpoB 0 10
+VpA penA 0 PWL(0 0 3m 0 3.01m 3.3 110m 3.3 110.01m 0)
+VpB penB 0 PWL(0 0 3m 0 3.01m 3.3 110m 3.3 110.01m 0)
+RlA vpoA 0 20
+RlB vpoB 0 20
 ClA vpoA 0 100u
 ClB vpoB 0 100u""",
-        tran="1u 90m", compare=["v(vpoA) v(vpoB)", "v(xa.efuse_en) v(efuse_enB)", "v(ovlA) v(ovlB)",
-                                "v(xa.q1_g) v(q1_gB)", "i(VsA) i(VsB)"],
-        planted=("R26 10k -> 11k (OVLO 10.4 -> 9.6 V)", "R26 ovlo gnd {10000*k_r26}", "R26 ovlo gnd {11000*k_r26}")),
+        tran="1u 120m", compare=["v(vpoA) v(vpoB)", "v(xa.efuse_en) v(efuse_enB)", "v(xa.ovlo) v(ovlB)",
+                                 "v(xa.q1_g) v(q1_gB)", "i(VsA) i(VsB)"],
+        planted=("R26 10k -> 11k (OVLO 19.2 -> 17.6 V)", "R26 ovlo gnd {10000*k_r26}", "R26 ovlo gnd {11000*k_r26}")),
     "buck-ap63203": dict(
         block="XA v3A 0 vbusA buck_ap63203",
-        flat="""XC40 vbusB 0 MLCC c0=4.6e-06 v0=7 m=1.7 k=1 esr=10m vop=9
-XC41 vbusB 0 MLCC c0=1e-07 v0=20 m=1.5 k=1 esr=30m vop=9
+        flat="""XC40 vbusB 0 MLCC c0=4.7e-06 v0=19.2 m=1.63 k=1 esr=10m vop=15
+XC41 vbusB 0 MLCC c0=1e-07 v0=20 m=1.5 k=1 esr=30m vop=15
 XC43 v3B 0 MLCC c0=2.02e-05 v0=5.0 m=1.75 k=1 esr=4.7m vop=3.3
 XC44 v3B 0 MLCC c0=2.02e-05 v0=5.0 m=1.75 k=1 esr=4.7m vop=3.3
 XU5 vbusB v3B v3B 0 AP63203 vref=3.3 gp=9 wi=6e5 ilim=2.5""",
-        stim="""* VBUS 0 -> 9 V at 0.5 ms behind 0.1 ohm; 3V3 load 25 mA, a 345 mA Wi-Fi burst at 4 ms (0.5 us edges)
-VsA sA 0 PWL(0 0 0.5m 0 0.6m 9)
-VsB sB 0 PWL(0 0 0.5m 0 0.6m 9)
+        stim="""* VBUS 0 -> 15 V at 0.5 ms behind 0.1 ohm; 3V3 load 25 mA, a 345 mA Wi-Fi burst at 4 ms (0.5 us edges)
+VsA sA 0 PWL(0 0 0.5m 0 0.6m 15)
+VsB sB 0 PWL(0 0 0.5m 0 0.6m 15)
 RsA sA vbusA 0.1
 RsB sB vbusB 0.1
 ILA v3A 0 PWL(0 0 3m 25m 4m 25m 4.0005m 345m 4.3m 345m 4.3005m 25m)
 ILB v3B 0 PWL(0 0 3m 25m 4m 25m 4.0005m 345m 4.3m 345m 4.3005m 25m)""",
         # The averaged loop switches its integrator on a comparison (V(err) > 0), and two copies solved in one
-        # matrix cross it a time step apart: their input currents differ by ~0.12 uA in 0.17 A (voltages by 2 nV),
-        # so currents are held to 1 uA here. The planted 10 uF error moves them by 15 mA.
-        tol_i=1e-6,
+        # matrix cross it a time step apart: at 15 V their input currents differ by ~17 uA in 0.43 A (0.12 uA in
+        # 0.17 A at 9 V), so currents are held to 50 uA here. The planted 10 uF error moves them by 9 mA.
+        tol_i=5e-5,
         tran="50n 6m", compare=["v(v3A) v(v3B)", "i(VsA) i(VsB)"],
         planted=("C43 22u -> 10u", "XC43 3v3 gnd MLCC c0=2.02e-05", "XC43 3v3 gnd MLCC c0=1.0e-05")),
     "rtc-pcf85063a": dict(
         block="XA v3A 0 sclA sdaA rtc_pcf85063a c51=2m irtc=0.5u",
         flat="""R52 v3B 3v3_rtcB 100
 D2a 3v3_rtcB vrtcB DBAV170
-D2b 3v3_rtcB vrtcB DBAV170
 C51 c51xB 0 2m
 Resr51 vrtcB c51xB 1e-3
 Bld vrtcB 0 I = (0.5u+0)*min(1, max(0, V(vrtcB)/0.5))

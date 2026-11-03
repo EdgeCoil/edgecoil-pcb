@@ -52,7 +52,9 @@ def main(block_dir, override=None, libs=None):
                      local_libs={k: (os.path.abspath(v), "") for k, v in libs.items()},
                      copper_layers=b.data.get("copper_layers", 2),
                      min_track_width=b.data.get("min_track_width", 0.2),
-                     dru_rules=b.dru_rules(), solid_pads=b.solid_pads())
+                     dru_rules=b.dru_rules(), solid_pads=b.solid_pads(),
+                     # no back text: its via keepout is the test board's, not the block's
+                     back_text=lambda name, w, h: [])
         cfg.variants = {"drc": lambda: (b.parts(at, nets=nets), h, [], [], {"width": w})}
         cfg.block_copper = b.copper(at, nets=nets)
         build(cfg, ["drc"])

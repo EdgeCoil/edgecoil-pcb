@@ -1,158 +1,189 @@
 # efuse-tps25947: findings and what the board must do
 
-Anchor U4. **Copper extent: x −14.04 … 7.70 mm, y −15.20 … 5.90 mm**, to the copper's edges (tracks and vias with their widths; parts' pads and courtyards reach further) from U4 (the fail-safe
-enable sits 6–15 mm above U4, as on the source board). Cut from the date-label-printer (four DFM
-audit rounds, CLEAN; post-layout simulation with routed copper and a 200 × 9 Monte Carlo, "sim3").
-Four layers: ten tracks run on In2.
+Anchor U4. **Copper extent: x −12.70 … 7.33 mm, y −7.93 … 6.05 mm**, to the copper's edges (tracks and vias with
+their widths; parts' pads and courtyards reach further) from U4. Cut from the date-label-printer at **rev B** (board
+92af546: re-placed and re-routed after the review of the rev A cut below; DFM audit rounds 5–8, CLEAN at round 8;
+post-layout simulation with routed copper and a 200 × 23 Monte Carlo, "sim4", PASS). 88 copper items, 15 of them
+vias; four layers: two EN tracks run on In2 and one VBUS link on B.Cu.
 
 ## What is in it, and what is not
 
 - **U4 TPS259474L** (VQFN-10 2 × 2, C2864845): 2.7–23 V, 28 V absolute, RON 28.2 mΩ typ / 45 mΩ max,
   circuit breaker with latch-off, dVdt restart after an over-voltage (the 470x bypasses it).
-- **IN**: C21 1 µF 50 V X7R 0805 (C28323) and C22 100 nF 50 V on U4's IN escape. **OUT**: C31 1 µF
-  50 V X7R 0805, about 3 mm below OUT.
-- Thresholds below are worst-case stacks of TI's guaranteed windows and 1 % resistors (the source
-  board's record had quoted narrower, nominal-ratio figures). **EN/UVLO** R23 48.7 kΩ / R24 10 kΩ from
-  VBUS: rising 6.83–7.30 V, falling 6.21–6.66 V (never on at 5 V), filtered by **C23** 100 nF (τ
-  0.83 ms). **OVLO** R25 76.8 kΩ / R26 10 kΩ: rising 10.09–10.81 V, falling 9.18–9.86 V. **ILM** R28
-  1.00 kΩ 1 %: ILIM 2.94 / 3.34 / 3.67 A; the fast trip near 2 × ILIM is typical behaviour (ISC 201 %
-  typ, no min/max); **TP3** on ILM reads 0.163–0.202 V/A (GIMON 165–200 µA/A, 0.182 typ). **dVdt** C24
-  4.7 nF ±10 % X7R: 0.156–0.74 V/ms nominal C (9 V in 12–58 ms, 15 V in 20–96 ms). **ITIMER** C25 10 nF
-  ±10 %: breaker blanking 4.6–16 ms.
-- **The fail-safe enable**: Q1 (2N7002) holds EN low while its gate is held up from VBUS (R29/R34
-  100 kΩ/100 kΩ: 2.5 V at 5 V, 14 V at a 28 V fault); Q2, driven from **PEN** through R30 1 kΩ and held
-  off by R35 100 kΩ, pulls Q1's gate down. **PEN high = on.** PEN floating, low, or its supply lost
-  means off; so does the logic supply dying while VBUS stays.
-- **The seven 0.2 mm escapes out of U4's pins** (locked on the source board: the router only knows
-  the board's 0.2 mm clearance, and U4's own pads sit 0.15–0.195 mm apart), the 0.6 mm VBUS link from
-  the IN escape onto C21.1, and the ground vias at C21/C22 and C31.
-- **Left to the board**: the 470 µF bulk (C30), the 10 mΩ Kelvin shunt (R31) and its test pads, the
-  printer socket. They are the load's side (bulk at the load, a measurement point for one printer's
-  current) and size with the load. **The 1.2 mm VPO bus is the board's too**: on the source board one
-  locked segment runs from U4's VPO escape past C31 and C30 to the shunt, and a segment is never
-  split, so this block's OUT copper is U4's escape alone (marked `"escape"` in block.json; on the
-  block alone it ends on nothing). **The board joins it to C31.1.** Likewise VBUS reaches C21.1
-  through the board's power run.
-- **OVLO is a port** for the source board's 15 V position: 13.0 kΩ across R26 (17.5 V; 16.9–18.2 V
-  rising; falling 15.41–16.59 V).
+- **IN**: C22 100 nF 50 V X7R 0603 at the pad end of IN's widened copper, then C21 1 µF 50 V X7R 0805 (C28323).
+  **OUT**: C32 1 µF 50 V X7R 0805 at the pad end of OUT's widened copper, and C31, the same part, beside it
+  (each ≈ 0.62 µF at 15 V on the DC-bias curve).
+- **This block runs only from a 12 V or 15 V input.** Thresholds are worst-case stacks of TI's guaranteed windows,
+  1 % resistors and ±0.1 µA pin leakage. **EN/UVLO** R23 75 kΩ / R24 10 kΩ from VBUS: on at 9.87–10.59 V, off below
+  8.98–9.66 V, so **never on at 5 V or 9 V** (9.45 V max), on at 12 V (11.4 V min) and 15 V; filtered by **C23**
+  100 nF (τ 0.88 ms). **OVLO** R25 150 kΩ / R26 10 kΩ: cuts at 18.56–19.95 V, back on below 16.88–18.21 V, so above
+  a 15 V contract's worst VBUS (16.0 V on a load release at 15.75 V): **it recovers by itself** through dVdt. A 20 V
+  source (19.0–21.0 V) may run or be cut. **ILM** R28 1.00 kΩ 1 %: ILIM 2.94 / 3.34 / 3.67 A; the fast trip near
+  2 × ILIM is typical behaviour (ISC 201 % typ, no min/max); **TP3** on ILM reads 0.163–0.202 V/A (GIMON
+  165–200 µA/A, 0.182 typ). **dVdt** C24 4.7 nF ±10 % X7R: 0.142–0.82 V/ms (0.156–0.74 at nominal C), so 0 → 90 %
+  of 15.75 V in 17–100 ms and of 12.6 V in 14–80 ms. **ITIMER** C25 10 nF ±10 %: breaker blanking 4.6–16 ms.
+- **The fail-safe enable**: Q1 (2N7002) holds EN low while its gate is held up from VBUS (R29/R34 100 kΩ/100 kΩ:
+  VBUS/2, ≥ 4.84 V wherever EN could reach its rising threshold, so the 2N7002's 4.5 V RDS(on) guarantee applies;
+  14 V at a 28 V fault). Q2 (**AO3400A**, C20917: RDS(on) ≤ 48 mΩ guaranteed at VGS 2.5 V), driven from **PEN**
+  through R30 1 kΩ and held off by R35 100 kΩ at its gate, pulls Q1's gate down. **PEN high = on.** PEN floating,
+  low, or its supply lost means off; so does the logic supply dying while VBUS stays.
+- **U4's seven 0.2 mm escapes** (locked on the source board: the router only knows the board's 0.2 mm clearance,
+  and U4's own pads sit 0.15–0.195 mm apart). **IN and OUT** stay 0.2 mm only until they clear the corner pads
+  (0.86 mm), then widen to 0.6 mm and, 0.34 mm on, to 1.2 mm: IN runs up through C22.1 to C21.1 with two VBUS vias
+  beside it, (−1.2, −2.6) and (−1.2, −3.8), joined on F.Cu and B.Cu; OUT runs down to y 2.8 and left onto C32.1.
+  **GND (pin 8)** runs on to its own via at (2.9, 0.23).
+- **Ground vias** at C21, C22, C31, C32, U4.8 and in the fail-safe (R24, C23/R26, Q1.S, Q2.S, R34, R35): 11 in
+  all. R28, C24 and C25 return on F.Cu to the C21 and U4.8 vias.
+- **The dividers sit by their pins**: R23, R24, C23, R26, R25 in a column at x −3.7, 2–3 mm from pins 1–2, all on
+  F.Cu (OVLO no longer crosses under U4). EN reaches Q1's drain on In2.
+- **Left to the board**: the 470 µF bulk (C30), the 10 mΩ Kelvin shunt (R31) and its test pads, the printer
+  socket: the load's side, sized with the load. **The 1.2 mm VPO run is the board's too**: on the source board one
+  locked segment runs from (0.24, 2.8), where the block's OUT copper turns onto C32, east along y 2.8 past C31, C30
+  and the shunt. A segment is never split, so it stayed with the board, with C31.1's 1.2 mm stub off it and the two
+  VPO vias on it at (1.4, 2.8) and (4.6, 2.8) that join a B.Cu copy of the run. **On the block alone C31.1 is
+  joined to nothing.** That run, its stub and its vias lie inside the block's copper extent, by design.
+- **OVLO is internal since rev B** (it was a port, for rev A's 9/15 V switch). A board wanting another cut-off
+  changes R25 or R26, which leaves the verified state below.
 - **The `lp` library** (block.json `local_libs`): U4's symbol and footprint are LCSC's, converted with
   easyeda2kicad. The toolkit ships no third-party library; a board supplies its own copy (`libs=`).
 
-## Margins (sim3, worst case: routed copper; Monte Carlo over guaranteed windows)
+## Margins (sim4, worst case: lumped and routed copper over fixed corners; Monte Carlo over guaranteed windows)
 
 | What | Worst | Limit (guaranteed) | Margin |
 |---|---|---|---|
-| EN while the load draws 2.5 A peaks, 8.55 V source on a 2 m cable | 1.306 V | 1.116 V (falling max) | 0.19 V |
-| OVLO at a 9.45 V source (9 V + 5 %) | 1.107 V | 1.183 V (rising min) | **0.076 V, the tightest** |
-| OVLO at 15.75 V, 13.0 kΩ across R26 | 1.097 V | 1.183 V | 0.086 V |
-| U4 current peak under 2.5 A strobes | 2.52 A | 2.97 A (ILIM min) | 0.45 A; breaker never started |
-| Inrush into the source board's 470 µF + 100 µF | 0.640 A | 0.8 A (own target; 2 A contract) | 0.16 A |
-| Output to 90 % after PEN | 58.4 ms (9 V), 94.5 ms (15 V) | F7 waits 70 / 110 ms | 11.6 / 15.5 ms |
-| EN during the plug-in ring, PEN not driven, Q1 Vth up to 2.5 V | 0.554 V (MC), 0.79 V settled at 4.75 V | 1.183 V | 0.40 V |
-| EN when the contract arrives before firmware drives PEN | ≤ 0.85 V | 1.183 V | 0.33 V |
-| Off after the logic supply or PEN is lost while loaded | ≤ 94 µs; on in 0 of 200 after 10 ms | — | — |
-| The weakest Q2 (Vth 2.5 V) with PEN at 3.3 V | Q1 gate ≤ 1.7 mV: on | Q1 Vth 1.0 V min | 1.0 V |
-| Source fault to 28 V | Q1 VGS 14.0 V, Q2 VDS 14.0 V, EN 4.77 V, OVLO 3.23 V | ±20 V, 60 V, 6.5 V, 6.5 V | 6.0 V; 1.73 V on EN |
-| Output at a 9 → 20 V source fault (9 V setting) | 9.38 V | 11 V | 1.62 V |
-| U4 IN at plug-in; IN slew of the ring (from 1 µs) | 8.73 V; −2.31 / +4.10 V/µs | 28 V; −10 / +100 V/µs | 19 V; 7.7 V/µs |
-| Input stepped 9 → 15 V with the output on | 2.93 A | 2.94 A (ILIM min with R28's 1 %) | **≈ 0**: see F8 |
+| EN at a 9 V source (9.45 V), PEN high: the output must stay off | 1.112 V | 1.183 V (rising min) | **0.071 V, the tightest** (0.42 V at VBUS on the 1 % stack) |
+| EN while printing 2.5 A peaks, 15 V source at 14.25 V, 2 m cable at 0.85 Ω (VBUS 12.03 V) | 1.470 V (MC, in-spec cables: 1.56 V) | 1.116 V (falling max) | 0.35 V |
+| EN while printing, 12 V source at 11.4 V: 2 m in-spec (MC) / 2 m at 0.85 Ω (fixed) | 1.232 / 1.133 V | 1.116 V | 0.116 / **0.017 V**: see below |
+| OVLO while printing at 15.75 V (strobe release) | 0.988 V (MC 1.004 V) | 1.183 V (rising min) | 0.18 V (≈ 2.9 V at VBUS) |
+| OVLO when PEN cuts U4 at full current (VBUS rings to 16.35 V) | 1.02 V | 1.183 V | 0.16 V |
+| U4 current peak under 2.5 A strobes | 2.67 A lumped / 2.50 A copper (MC 2.52 A) | 2.94 A (ILIM min with R28's 1 %) | 0.27 A; breaker timer never started |
+| Inrush into the source board's 470 µF + its printer | 0.588 A (MC 0.624 A) | 0.8 A (own target; 3 A contract) | 0.18 A |
+| Output to 90 % after PEN, 15 V (15.75 V) / 12 V (12.6 V) | 91.9 / 74.2 ms (MC, C24 ±10 %: 96.2 / 76.6 ms) | F7 waits 110 / 90 ms | 13.8 / 13.4 ms |
+| EN during the plug-in ring, PEN not driven, Q1 Vth up to 2.5 V | 0.539 V copper (MC 0.372 V) | 1.183 V | 0.64 V |
+| EN when the 15 V contract arrives before firmware drives PEN | 0.588 V | 1.183 V | 0.59 V |
+| Off after the logic supply or PEN is lost while loaded | ≤ 212 µs (MC ≤ 120 µs); on in 0 of 200 after 10 ms | — | — |
+| The weakest Q2 (Vth 1.45 V) with PEN at 3.3 V | on: the load sees 14.64 V while printing | — | — |
+| Source fault to 28 V | Q1 VGS 14.0 V, Q2 VDS 14.0 V, Q2 VGS 3.29 V, EN 3.32 V (MC 3.35 V), OVLO 1.77 V | ±20, 30, ±12, 6.5, 6.5 V | 6.0, 16, 8.7, 3.15, 4.7 V |
+| Output at a 15 → 20…28 V source fault | 15.25 V lumped / 15.21 V copper (MC 15.60 V) | the load's own (source board: 24 V, C30 25 V) | 8.4 V |
+| U4 IN at plug-in; IN slew of the ring | 8.55 / 8.19 V (MC 8.74 V); +7.5 V/µs, −5.1 V/µs from 1 µs after contact | 28 V; +100 / −10 V/µs | 19 V; 4.9 V/µs |
+| Hard short at the load (10 mΩ): U4 fast trip, IN ring | off in 0.6 µs; IN 22.47 V lumped / 21.22 V copper (MC 23.63 / 22.43 V) | 28 V (U4 IN); 25 V (the board's VBUS parts) | 4.4 V on U4, 1.37 V on 25 V parts (MC lumped) |
+| Unplug while printing: IN falling slew | −0.27 V/µs | −10 V/µs | 9.7 V/µs |
 
-The Monte Carlo drew CdVdt's ±10 % through IdVdt, so the F7 times above include it (not X7R's
-temperature drift); it did not draw R28's 1 %, nor C24/C25 temperature.
+**The 12 V fallback on a bad cable.** On a 2 m cable at 0.85 Ω (well outside USB-C's IR-drop budget) EN's minimum
+while printing at 11.4 V was 1.133 V with nominal resistors, 17 mV above UVLO's falling maximum; R23/R24 at their 1 %
+worst (ratio 8.65 against 8.50) take that to ≈ 1.113 V, through it. The failure is benign: U4 turns off mid-print and
+restarts through dVdt when VBUS recovers (a spoiled print, no overstress). In-spec cables keep 0.116 V. A board that
+must print reliably at 12 V on poor cables would trade some of the 9 V margin above for it (R23 lower).
 
-Copper on the source board: C21 → U4 IN 3.87 mΩ / 0.8 nH; U4 OUT → C31 4.26 mΩ / 1.0 nH; U4's GND
-pin reaches the planes through its 0.2 mm escape, 8.2 mΩ (it carries U4's 0.6 mA; the dividers return
-through their own pads). The divider tops tee off VBUS, so EN reads 2 mV low and OVLO 6 mV low at 2.5 A.
+**The hard short's falling slew** (−50 V/µs over 100 ns in the Monte Carlo, −61 V/µs at a fixed corner, copper) is a
+model artefact: the eFuse model has no current clamp before its fast trip, so it dumps VBUS's capacitors into the
+short at 110–217 A for 0.6 µs. TI's 10 V/µs IN limit is for the supply; an output short is the case the part is
+characterised for. The ring figure is the pessimistic bound; the copper's nH lower it by 1.3 V.
+
+The Monte Carlo drew CdVdt's ±10 % through IdVdt, so the F7 times include it (not X7R's temperature drift), the
+resistors at ±1 %, C25 ±10 %, the MLCCs 0.80–1.10, Q1/Q2 Vth over their full windows; it did not draw R28's 1 %
+(the ILIM row quotes it by hand).
+
+Copper on the source board (sim4's extraction): C22 → U4 IN 2.40 mΩ / 0.45 nH, C21 → C22 0.49 mΩ / 0.18 nH;
+U4 OUT → C32 2.40 mΩ / 0.45 nH, → C31 3.2 mΩ; U4's GND pin to its via 4.16 mΩ / 0.73 nH (rev A: 3.87, 4.26 and
+8.2 mΩ through the 0.2 mm necks and the pour). On the source board R23 tees off at C21 (no current in the tee);
+R25/R29 tee off nearer the connector, ≈ 15 mΩ upstream of U4's IN, so OVLO reads ≈ 2.5 mV high at 2.5 A, the
+conservative side.
 
 ## Firmware rules the block needs (from the source board's F7, F8, F9)
 
-- **F7: wait before loading the output.** With 4.7 nF of dVdt the output takes up to 58 ms (9 V) or
-  94 ms (15 V) to reach 90 %: wait ≥ 70 ms / ≥ 110 ms after PEN goes high. A load started mid-ramp
-  sagged the rail to 6.6 V in simulation.
-- **F8: never step the input up with the output on.** Charging the output's bulk by 6 V (9 → 15 V)
-  took U4 to 2.93 A against its 2.97 A minimum limit, bounded only by the source's own limit; with a
-  stiffer source U4 hits its limit, may time out and latch off. Safe (off), but avoid it: PEN low,
-  change the contract, PEN high, wait F7. A latch clears with PEN low then high (Q1 pulls EN below
-  VSD, 0.45 V).
-- **F9: recover from an over-voltage cut-off.** After the input falls from 15 to 9 V while live, or
-  after any real OVLO event at 9 V, the output stays off if the source sits above OVLO's falling
-  threshold (9.18–9.86 V worst case; 3 of 18 corners at a 9.45 V source). Ask for 5 V, wait for
-  VBUS < 6 V, ask again. **This cannot be designed out with these parts**: meeting both 11 V on the
-  output and staying on at 9.45 V needs rising-max / falling-min ≤ 1.164, and this part's hysteresis
-  with 1 % resistors gives 1.16 at best. The 15 V position has the same shape (falling 15.41–16.59 V
-  against a 15.75 V maximum). **The block gives firmware no signal of an OVLO trip or a breaker
-  latch-off** (PG/PGTH are unused): F9 must infer it (the source board: the printer stops answering).
+- **F7: wait before loading the output.** With 4.7 nF of dVdt the output takes up to 96 ms (simulated, C24 ±10 %;
+  100 ms on the hand stack) to reach 90 % at 15 V, 77 ms (80 ms) at 12 V: wait **≥ 110 ms** after PEN goes high at
+  15 V, ≥ 90 ms at 12 V. A load started mid-ramp sagged the rail to 6.6 V in rev A's simulation. Or keep the output
+  on whenever a contract exists.
+- **Never step the input up with the output on**, and never ask the source for more than the contract the board
+  is built for. Rev A's sim3 measured a 9 → 15 V step charging the output bulk at 2.93 A against U4's 2.94 A
+  minimum limit (it may time out and latch: safe, but avoid it). Rev B's source board has no such step (fixed
+  15 V; its F8 forbids any I²C PDO request), and **a 20 V request reaches OVLO's band** (18.56–19.95 V): it may
+  run or be cut. If the contract must change: PEN low, change it, PEN high, wait F7.
+- **A latch-off clears with PEN low then high** (Q1 pulls EN below VSD, 0.45 V). An over-voltage cut-off no longer
+  needs firmware: **rev A's F9 is retired**, because OVLO's falling minimum (16.88 V) is above any 15 V contract, so
+  U4 restarts by itself through dVdt.
+- **The block gives firmware no signal of an OVLO trip, a breaker latch-off or a UVLO drop-out** (PG/PGTH unused):
+  firmware must infer it from the load (the source board: the printer stops answering), and report it.
 
 ## Accepted, and carried by the block
 
-- **The fail-safe enable** replaced a first design whose Q1 gate was pulled up to the logic rail (a dead
-  rail enabled the output). It was the EN network's second fix, so it went to a redesign review; the
-  audits since judged it the circuit one would draw from scratch: driving EN from a GPIO alone would
-  drop the hardware UVLO interlock (no output at 5 V, whatever firmware does).
-- **The 0.2 mm escapes** (about 3 mΩ at 2.5 A) and their 0.4–0.5 mm necks outside the body: accepted.
-- **PG and PGTH unused and open**; no test pad (PG means nothing with PGTH floating).
-- **No Schottky from OUT to GND** (TI suggests one for inductive loads): the source board's load has
-  470 µF of bulk at it. A load with long leads or a motor on its own is the board's to judge.
-- **EN and OVLO dividers sit 6–8 mm from U4** (TI asks for them close); EN is filtered by C23 (τ
-  0.83 ms) and both nodes are high-impedance DC; the source board passed its audits and simulation so.
-- **TP3 on ILM**: TI keeps ILM's parasitic capacitance under 50 pF. A pad is a few pF; a scope probe
-  (10–15 pF) is fine, a long lead may not be.
-- **JLC**: C2864845 placed by `jlc_verify`, pad by pad; the 2N7002 (C8545) +180 in the toolkit's table.
+- **The fail-safe enable**: driving EN from a GPIO alone would drop the hardware UVLO interlock (no output below
+  ~10 V, whatever firmware does). Rev A's first design pulled Q1's gate up to the logic rail (a dead rail enabled
+  the output); the VBUS pull-up has passed every audit and simulation since.
+- **PG and PGTH unused and open**; no test pad (PG means nothing with PGTH floating). Declined on the source board
+  for want of a GPIO (finding 4 below).
+- **No OVLO filter capacitor** (the rev A review's optional ≤ 1 nF): the margin is now 0.18 V at the pin (2.9 V at
+  VBUS), and a filter would only slow the cut.
+- **No Schottky from OUT to GND** (TI suggests one for inductive loads): the source board's load has 470 µF of bulk
+  at it. A load with long leads or a motor on its own is the board's to judge.
+- **The 0.2 mm necks out of IN and OUT** (0.86 mm long, between the corner pads): about 2 mΩ each.
+- **TP3 on ILM**: TI keeps ILM's parasitic capacitance under 50 pF. A pad is a few pF; a scope probe (10–15 pF) is
+  fine, a long lead may not be.
+- **EN and OVLO pull-ups below TI's ≥ 350 kΩ for reverse-polarity protection** (R23 75 kΩ, R25 150 kΩ, and R29
+  100 kΩ onto Q1's gate): fine behind USB-C, which cannot reverse; a board behind a barrel jack must revisit it.
+- **The model's tOVLO is ASSUMED 5 µs**; the datasheet's timing table gives 1.2 µs typ. The model cuts later than the
+  part, which overstates the output's overshoot at a fault: the pessimistic side. Kept as sim3 and sim4 ran it.
+- **JLC**: C2864845 placed by `jlc_verify`, pad by pad; the 2N7002 (C8545) and the AO3400A (C20917) +180 in the
+  toolkit's table. The source board's rev B build passed `jlc_verify` for every part.
 
 ## Measure at bring-up
 
-- **U4 IN at plug-in on a scope**: falling slew against the 10 V/µs absolute limit. The simulated ring
-  falls at 2.3 V/µs; only the bench's idealised contact came near it, and a real plug's bounce is not
-  modelled.
-- **PEN's GPIO through reset**: the simulation assumes it high-impedance (R35 holds Q2 off); confirm no
-  internal pull-up on the chosen pin.
+- **U4 IN at plug-in on a scope**: falling slew against the 10 V/µs absolute limit. The simulated ring falls at
+  ≤ 5.1 V/µs from 1 µs after contact; only the bench's idealised contact edge exceeds it, and a real plug's bounce
+  is not modelled.
+- **PEN's GPIO through reset**: the simulation assumes it high-impedance (R35 holds Q2 off); confirm no internal
+  pull-up on the chosen pin.
 - **TP3** against a known load current, if the current limit's reading is to be used.
 
 ## The board's job
 
-- **Join the block's three VBUS pieces**: U4 IN/C21/C22 (the power path); R25.1 and R29.1 (joined to
-  each other on In2 in the block); R23.1 (no block copper). The divider tops must tee off VBUS, never
-  sit in the power path.
-- **Judge the turn-off ring on IN**: U4 interrupting 6–7 A (a fast trip) or an OVLO/breaker cut at
-  15 V with ~1.1 µF beside it and a 2 m cable rings IN by roughly I·√(L/C) ≈ 9 V (hand estimate), to
-  ~25 V against IN's 28 V; and IN's falling-slew limit (10 V/µs) was checked only at plug-in. Simulate
-  these or fit a TVS on VBUS (TI's transient-protection section).
-- **VBUS to C21.1 and U4's IN escape** at ≥ 1.2 mm on 1 oz (3 A; TI asks for twice the full-load
-  current), with two vias at each layer change; and **U4's VPO escape to C31.1 and on to the load**,
-  as wide. On the source board both are locked 1.2 mm runs (`power.PowerCopper`).
-- **Bulk at the load**, sized for it (the source board: 470 µF 25 V at the printer socket), and a Kelvin
-  shunt if the load current is to be measured.
+- **Feed VBUS into one of the block's two VBUS vias**, (−1.2, −2.6) or (−1.2, −3.8), at ≥ 1.2 mm on 1 oz (3 A; TI
+  asks for twice the full-load current); on the source board a locked B.Cu run from the USB-C connector lands on
+  (−1.2, −2.6). The block's IN copper already joins U4 IN, C22, C21 and R23.1.
+- **Join R25.1/R29.1** (joined to each other on F.Cu in the block) **to VBUS** by a tee that carries no load
+  current: the divider tops must never sit in the power path.
+- **Lay VPO from (0.24, 2.8) east at ≥ 1.2 mm** past C31.1 (a stub into it) to the bulk and the load, with vias to
+  a back-side copy beside U4 (heat out of OUT, half the resistance). Keep it where it is: it lies inside the block's
+  copper extent, and C31 is joined to nothing without it.
 - **PEN** from a GPIO that is not a strapping pin and idles high-impedance or low through reset.
-- **OVLO**: leave it for 10.4 V; add resistance across R26 for a higher cut-off (13.0 kΩ: 17.5 V).
-- **Every part on VBUS rated ≥ 25 V**; U4's IN is 28 V absolute.
-- **The block's design rules** (block.json): `dru_rules` (U4's own pads 0.14 mm apart; JLC's minimum is
-  0.1 mm; everything else at the board's 0.2 mm) through `Block.dru_rules(refs)`, `min_track_width`
-  0.18 mm, and four copper layers.
-- **The firmware rules F7–F9** above.
-- **Keep parts out of the copper extent.**
+- **Bulk at the load**, sized for it (the source board: 470 µF 25 V at the printer socket), and a Kelvin shunt if
+  the load current is to be measured.
+- **Every part on VBUS rated ≥ 25 V**; U4's IN is 28 V absolute. The hard-short ring reached 22.4–23.6 V on the
+  source board (Monte Carlo, copper / lumped): a board with less VBUS capacitance or a longer cable must simulate
+  its own or fit a TVS (TI's transient-protection section).
+- **The block's design rules** (block.json): `dru_rules` (U4's own pads 0.14 mm apart; JLC's minimum is 0.1 mm;
+  everything else at the board's 0.2 mm) through `Block.dru_rules(refs)`, `min_track_width` 0.18 mm, and four
+  copper layers.
+- **The firmware rules** above.
+- **Keep parts out of the copper extent** (the board's own VPO run excepted).
 
-## Independent review of the block alone (and what was done)
+## Rev A review findings and how rev B answers them
 
-One fresh reviewer, given only this directory and the toolkit's README, with TI's datasheet (SLVSFC9C,
-May 2026): NOT CLEAN, 0 blockers, 8 should-fix, 6 suggestions. No absolute maximum is exceeded in
-any analysed case; the TPS259474L and the two-FET fail-safe were judged reasonable choices. The
-layout findings are about the source board's copper, which this block reproduces exactly; the board
-stays canonically the same, so they are **declined in this cut and recorded for the next revision**,
-where a re-laid block gets its own DRC and review (as `ldo-ldl1117` did).
+One fresh reviewer read the rev A cut alone, with TI's datasheet (SLVSFC9C, May 2026): NOT CLEAN, 0 blockers,
+8 should-fix, 6 suggestions. The source board took the layout findings into its rev B; this cut is that layout.
+**The rev B block has not itself had an independent review**: rev B's board passed its DFM audits and sim4.
 
-| # | Finding | Response |
+| # | Rev A finding | Rev B |
 |---|---|---|
-| 1 | IN and OUT copper inside the block is 0.6 mm then 0.2 mm for the last 2 mm, with no vias, against TI's "twice full load" and IN/OUT as the heat path (RθJA 41.7 °C/W with 8 vias, 74.5 with none) | **Declined in this cut** (the source board's audits accepted the 0.4–0.5 mm necks as thermally negligible at ~3 mΩ). **Next revision**: flare both escapes to ≥ 1.2 mm from ~0.2 mm past the pad ends, 2–4 vias on each |
-| 2 | C22 (100 nF) is 4.9 mm from IN, further than C21; both behind the neck; U4's GND pin has no via (it reaches ground through the F.Cu pour) | **Declined in this cut**; the board's job now says the front pour is U4's ground. **Next revision**: the 100 nF at the IN pad end with its ground by pin 8, a via at pin 8's escape |
-| 3 | The fail-safe's grounds (R24.2, Q1 and Q2 sources, R34.2) have no via, only the pour; R35 runs 6.5 mm to a remote via | **Declined in this cut**, with the risk stated: a broken pour neck would float Q1's source and enable the output. The source board's DRC and pour checks passed (every island anchored). **Next revision**: GND vias at R24.2/Q2.S and Q1.S/R34.2, R35 local |
-| 4 | OVLO's hysteresis band holds the 9 V contract; firmware cannot see an OVLO trip; the falling window was quoted too narrow | **Fixed in FINDINGS**: worst-case stacks quoted (EN, OVLO both positions), the 1.164 vs 1.16 bound recorded, F9 states firmware gets no signal. **PG** (PGTH divider on OUT, PG to a GPIO) is the right fix: next revision (the source board had no spare GPIO) |
-| 5 | F7 and timing margins omit CdVdt and RILM tolerance | **Partly declined**: sim3's Monte Carlo drew CdVdt ±10 % through IdVdt, so F7's 58.4 / 94.5 ms include it (stated above). **Fixed**: ILIM with R28's 1 % (2.94–3.67 A) and ITIMER with C25 ±10 % (4.6–16 ms); the F8 margin is now ≈ 0, which only strengthens F8 |
-| 6 | The dividers sit 6–8 mm from their pins; OVLO crosses under the IC on In2, unfiltered, with 76 mV of margin | **Declined in this cut** (recorded in Accepted). **Next revision**: R25/R26 by pin 2 and R23/R24/C23 by pin 1; optionally ≤ 1 nF on OVLO |
-| 7 | The board's job missed two VBUS joins and the turn-off ring on IN | **Added to the board's job** |
-| 8 | The 2N7002 drive is not shown on guaranteed figures: Q2 at 3.3 V and Q1 at 3.4–4.5 V across the UVLO window are below the 4.5 V RDS(on) guarantee; the margin rests on an ASSUMED kp | **Recorded**: only Vth ≤ 2.5 V at 250 µA is guaranteed below 4.5 V; the currents needed are ≤ 0.3 mA, and the source board's s7 "on" check used the weakest kp. **Next revision**: R34 → 200 kΩ (VGS = ⅔ VBUS, 18.7 V at 28 V) or a FET with RDS(on) guaranteed at 2.5 V |
-| 9 | The fast trip at 2 × ILIM is typical only | **Fixed** (stated above) |
-| 10 | models.inc says tOVLO is ASSUMED 5 µs; the datasheet gives 1.2 µs typ | **Recorded, model unchanged** (the ported model must stay sim3's): the model cuts OVLO slower than the part, which overstates the output's overshoot at a fault, the pessimistic side. Noted in models.inc |
-| 11 | TP3's and EN's figures should be guaranteed ranges | **Fixed** above |
-| 12 | TI recommends ≥ 350 kΩ pull-ups on EN/OVLO against reverse polarity; R23/R25 are 48.7/76.8 kΩ | **Recorded**: fine behind USB-C (no reverse polarity); a board behind a barrel jack must revisit it |
-| 13 | 21 × 21 mm of copper for a 2 × 2 mm IC; R35 7 mm from Q2's gate leaves a high-impedance gate run | **Declined in this cut** (the source board's placement); next revision fits in ~8 × 10 mm with R35 at Q2's gate |
-| 14 | A second OUT capacitor at the pad end (C31 loses ~half under DC bias at 15 V) | **Declined in this cut**; next revision with finding 1 |
+| 1 | IN/OUT 0.6 then 0.2 mm for the last 2 mm, no vias, against TI's "twice full load" and the heat path | **Resolved**: 0.2 mm for 0.86 mm only (between the corner pads), 0.6 mm, then 1.2 mm; two VBUS vias on IN inside the block. **OUT's two vias are on the board's VPO run**, not in the block (the board's job) |
+| 2 | C22 4.9 mm from IN, behind the neck; U4's GND pin without a via | **Resolved**: C22 at the pad end of IN's 1.2 mm copper with its own GND via, C21 next; pin 8's escape runs to a via (4.16 mΩ, was 8.2) |
+| 3 | Fail-safe grounds only through the pour; R35 6.5 mm from Q2 | **Resolved**: GND vias at R24, C23/R26, Q1.S, Q2.S, R34, R35; R35 beside Q2's gate (≈ 2 mm of track) |
+| 4 | OVLO's band held the 9 V contract; no OVLO-trip signal; falling window quoted narrow | **Resolved in part**: fixed 15 V, OVLO at 18.56–19.95 V recovers by itself (rev A's F9 retired), windows quoted worst-case. **Still open**: PG unused, so firmware gets no trip signal (declined on the source board: no free GPIO) |
+| 5 | F7 and timing margins omitted CdVdt and RILM tolerance | **Resolved**: sim4's Monte Carlo draws CdVdt ±10 %; the hand stack (100 / 80 ms) also fits F7; ILIM quoted with R28's 1 % |
+| 6 | Dividers 6–8 mm from their pins; OVLO under the IC on In2, unfiltered, 76 mV margin | **Resolved**: both dividers 2–3 mm from pins 1–2 on F.Cu; OVLO margin 0.18 V at the pin; filter declined (Accepted) |
+| 7 | Board's job missed two VBUS joins and the turn-off ring on IN | **Resolved**: joins listed above; the ring is simulated (PEN cut 16.35 V, hard short ≤ 23.6 V) |
+| 8 | 2N7002 drive below its 4.5 V RDS(on) guarantee | **Resolved**: Q1 VGS ≥ 4.84 V wherever EN can switch on (the new UVLO); Q2 an AO3400A, guaranteed at 2.5 V, driven at 3.27 V |
+| 9 | Fast trip at 2 × ILIM is typical only | **Still true** (stated above); the hard short is simulated with it |
+| 10 | Model's tOVLO ASSUMED 5 µs, datasheet 1.2 µs typ | **Still open, model unchanged** (pessimistic side; Accepted). Separately, sim4 found and fixed a latch fault in the model (below) |
+| 11 | TP3 and EN figures should be guaranteed ranges | **Resolved** (above) |
+| 12 | ≥ 350 kΩ pull-ups on EN/OVLO for reverse polarity | **Still open, accepted** behind USB-C (Accepted) |
+| 13 | 21 × 21 mm of copper for a 2 × 2 mm IC | **Resolved**: 20.0 × 14.0 mm, the fail-safe in ≈ 10 × 11 mm left of U4 |
+| 14 | One OUT capacitor, half its value at 15 V | **Resolved**: C32 at OUT's pad end plus C31 (≈ 1.2 µF together at 15 V) |
+
+**The eFuse model** (`../models.inc`, ported from the source board's rev B harness): its latch charged at 1 V/ms,
+so the "500 ns" fast trip took ~0.5 ms to open the switch, and a short fast trip could freeze it near 0.99, leaving
+U4 ~1 % on into a short. It now settles in ~100 ns and holds itself once past 0.5; EN below VSD still clears it.
+Only fault paths set the latch, so no non-fault figure moves. The AO3400A model (`NAO3400`: level 1, the weakest
+guaranteed device) is added there too.

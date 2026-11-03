@@ -59,7 +59,8 @@ Blk3 io3 gnd I = {ilkio}*V(io3,gnd)/5
 .model ABD D(BV=6.0 IBV=1u CJO=230p IS=1e-11 VJ=0.6 M=0.33 N=1 RS=0.014 TT=1n)
 .ends
 
-* ==== From the date-label-printer simulation (sim3: post-layout, routed copper, 200 x 9 Monte Carlo), for the
+* ==== From the date-label-printer simulation (sim3 at rev A; rev B's sim4: post-layout, routed copper, 200 x 23 Monte
+* Carlo, which added the eFuse latch fix and the AO3400A below), for the
 * usb-c-pd-sink, efuse-tps25947, buck-ap63203 and rtc-pcf85063a blocks. Each is that harness's model with its ground
 * made a pin (gnd) in place of node 0; otherwise unchanged. ngspice treats a node named gnd as ground, so in use that
 * pin is node 0 (as for LDL1117 above); renamed and held 2 V above node 0 in a check, the ports matched the originals
@@ -85,7 +86,8 @@ Rst st gnd 1e9
 *   Fast trip at 2 x ILIM (scalable) after 500 ns (tFT is for IFT; ASSUMED the same for the scalable trip).
 * ILIM = 3340/RILM A typ (1.65 k -> 2.028, 750 -> 4.452 A); min x0.888, max x1.087 (Table 6.5 rows).
 * tOVLO: ASSUMED 5 us (tOVC is 5 us; the OVLO time is in the switching table).
-*   (Kept as sim3 ran it. The datasheet's timing table gives tOVLO 1.2 us typ: the model cuts later, the pessimistic side.)
+*   (Kept as sim3 and sim4 ran it. The datasheet's timing table gives tOVLO 1.2 us typ: the model cuts later, the
+*   pessimistic side.)
 .subckt TPS259474 in out en ovlo gnd params: ron=0.0282 ilim=3.34 idvdt=2.21u cdvdt=3.3n citimer=10n iitimer=1.8u dvit=1.51
 + ven_r=1.20 ven_f=1.09 vov_r=1.20 vov_f=1.09
 Xen en enst gnd SCHMITT vr={ven_r} vf={ven_f}
@@ -112,7 +114,12 @@ Rtm tmr gnd 1e9
 Bft gnd ftc I = (V(isns,gnd) > {2*ilim} ? 2e6 : -V(ftc,gnd)*1e7) * 1u
 Cft ftc gnd 1u
 Rft ftc gnd 1e9
-Blat gnd lat I = ( (V(tmr,gnd) > {dvit} || V(ftc,gnd) > 1) ? (1-V(lat,gnd))*1e3 : (V(sdn,gnd) < 0.5 ? -V(lat,gnd)*1e3 : 0) ) * 1u
+* rev B: the latch settles in ~100 ns (it was 1e3 x 1u: 1 V/ms, so the '500 ns' fast trip took ~0.5 ms to open the
+* switch; found by the source board's s8, the first check to short the output. Normal checks never set it).
+* sim4: and it now holds itself once past 0.5. Before, its hold branch was 0, so a fast trip that ended ~100 ns into the
+* opening (the current below 2 x ILIM, ftc discharging) froze the latch near 0.99: U4 stayed ~1 % on and fed ~6 A into a
+* short for good, loading VBUS through the ring (found by sim4's s8 waveforms). EN below VSD still clears it.
+Blat gnd lat I = ( (V(tmr,gnd) > {dvit} || V(ftc,gnd) > 1) ? (1-V(lat,gnd))*1e7 : (V(sdn,gnd) < 0.5 ? -V(lat,gnd)*1e3 : (V(lat,gnd) > 0.5 ? (1-V(lat,gnd))*1e7 : 0)) ) * 1u
 Clat lat gnd 1u
 Rlat lat gnd 1e12
 * quiescent 610 uA max on IN
@@ -171,8 +178,22 @@ Dbd s d DBODY
 Rgs g s 1e12
 .ends N2N7002
 
+* ---------------- AO3400A (AOS; JLC C20917), the efuse block's Q2 since rev B: VDS 30 V, VGS +-12 V abs max;
+* VGS(th) 0.65-1.45 V at 250 uA; RDS(on) <= 48 mohm at VGS 2.5 V (3 A) -- level 1, kp so the weakest guaranteed
+* device (Vth 1.45 V) has 48 mohm at VGS 2.5 V: kp = 1/(0.048 x 1.05) = 19.8 (it sinks <= 0.16 mA there, so only the
+* on/off state matters). Ciss 630 pF, Coss 75 pF, Crss 50 pF typ. Body diode S->D. Nodes d g s.
+.subckt NAO3400 d g s params: vth=1.05 kp=19.8
+M1 d g s s NMA L=1u W=1u
+.model NMA NMOS(LEVEL=1 VTO={vth} KP={kp} LAMBDA=0.01)
+Cgs g s 580p
+Cgd g d 50p
+Cds d s 25p
+Dbd s d DBODYA
+.model DBODYA D(IS=1e-12 N=1.5 RS=0.05 CJO=50p)
+Rgs g s 1e12
+.ends NAO3400
 
-* BAV170 dual (both anodes on one node, common cathode on the other: wire it as two in parallel): low-leakage
-* diode, VF fitted to Nexperia's maxima (0.9 V at 1 mA, 1.0 V at 10 mA, 1.1 V at 50 mA; curve shape ASSUMED);
+
+* BAV170, one element of the dual (rtc-pcf85063a uses one): low-leakage switching diode (silicon, not Schottky), VF fitted to Nexperia's maxima (0.9 V at 1 mA, 1.0 V at 10 mA, 1.1 V at 50 mA; curve shape ASSUMED);
 * reverse leakage (nA) not modelled.
 .model DBAV170 D(IS=2e-10 N=2.0 RS=1.0 CJO=2p)

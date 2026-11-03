@@ -9,12 +9,13 @@ joins block to block, so a new board's review covers the joins and whatever is n
 | [`esp32-c3-wroom-02`](esp32-c3-wroom-02/) | U1 | U1 module, C5, EN RC (R6, C6), IO8/IO2 pull-ups (R7, R9), RESET/BOOT (SW1, SW2) | 47 items, 3 vias | 3V3, GND, IO0, IO1, IO4, IO5, IO6, IO10, RXD, TXD, USB_DN, USB_DP (IO3, IO7 optional) | EN, IO2, IO8, IO9 |
 | [`usb-c-power`](usb-c-power/) | J1 | J1 HRO TYPE-C-31-M-12, CC pull-downs (R1, R2), SRV05-4 ESD (U2) | 17 items, 2 vias | 3V3, GND, USB_DN, USB_DP, VBUS | CC1, CC2 |
 | [`ldo-ldl1117`](ldo-ldl1117/) | U5 | U5 LDL1117S33R (KiCad stock SOT-223), C1 10u at VIN, C4 22u at the tab returned through R25 (0 Ω link; swap to add ESR) | 4 items | 3V3, GND, VBUS | C4_ESR |
-| [`usb-c-pd-sink`](usb-c-pd-sink/) | U3 | U3 HUSB238_002DD PD sink, C20 1u at VIN, ISET 10.5k (R20: 2 A), VSET 14.0k (R21: 15 V; a board adds resistance across it for less) | 30 items, 3 vias | CC1, CC2, GND, SCL, SDA, VBUS, VSET | ISET |
-| [`efuse-tps25947`](efuse-tps25947/) | U4 | U4 TPS259474L eFuse, IN C21 1u + C22 100n, OUT C31 1u, EN/UVLO 48.7k/10k (R23, R24) + C23 100n, OVLO 76.8k/10k (R25, R26), ILM 1k (R28) + TP3, dVdt 4.7n (C24), ITIMER 10n (C25), fail-safe enable Q1/Q2 2N7002 with R29, R34, R30, R35 | 121 items, 11 vias | GND, OVLO, PEN, VBUS, VPO | DVDT, EFUSE_EN, ILM, ITIMER, Q1_G, Q2_G |
-| [`buck-ap63203`](buck-ap63203/) | U5 | U5 AP63203WU 3.3 V buck, C41 100n + C40 4.7u at VIN, L1 4.7u CKCSA4020, C42 100n bootstrap, C43/C44 22u | 38 items, 5 vias | 3V3, GND, VBUS | BST, SW |
-| [`rtc-pcf85063a`](rtc-pcf85063a/) | U9 | U9 PCF85063A, Y1 32.768 kHz 7 pF, C50 100n, backup R52 100 Ω + D2 BAV170 into C51 (0.22 F EDLC footprint: hand-fitted, part not chosen) | 37 items, 3 vias | 3V3, GND, SCL, SDA | 3V3_RTC, OSCI, OSCO, VRTC |
+| [`usb-c-pd-sink`](usb-c-pd-sink/) | U3 | U3 HUSB238_002DD PD sink, C20 2.2u 50 V at VIN, ISET 20.0k (R20: the 2.75/3 A code), VSET 14.0k as R21 13k + R22 1k (fixed 15 V) | 19 items, 3 vias | CC1, CC2, GND, SCL, SDA, VBUS | ISET, VSET, VSET_M |
+| [`efuse-tps25947`](efuse-tps25947/) | U4 | U4 TPS259474L eFuse, IN C21 1u + C22 100n, OUT C31 + C32 1u, EN/UVLO 75k/10k (R23, R24: on at 12 and 15 V only) + C23 100n, OVLO 150k/10k (R25, R26: 18.6-20 V), ILM 1k (R28) + TP3, dVdt 4.7n (C24), ITIMER 10n (C25), fail-safe enable Q1 2N7002 + Q2 AO3400A with R29, R34, R30, R35 | 88 items, 15 vias | GND, PEN, VBUS, VPO | DVDT, EFUSE_EN, ILM, ITIMER, OVLO, Q1_G, Q2_G |
+| [`buck-ap63203`](buck-ap63203/) | U5 | U5 AP63203WU 3.3 V buck, C41 100n + C40 4.7u 50 V X7R 1206 at VIN, L1 4.7u CKCSA4020, C42 100n bootstrap by pins 5/6, C43/C44 22u at L1 | 25 items, 5 vias | 3V3, GND, VBUS | BST, SW |
+| [`rtc-pcf85063a`](rtc-pcf85063a/) | U9 | U9 PCF85063A, Y1 32.768 kHz 7 pF, C50 100n, backup R52 100 Ω + D2 BAV170 (one element) into C51 (0.47 F 5.5 V coin EDLC footprint: optional, hand-fitted, hold-up a target), TP6 on VRTC | 18 items, 5 vias | 3V3, GND, SCL, SDA | 3V3_RTC, OSCI, OSCO, VRTC |
 
-The last four were cut from the date-label-printer (four layers): their copper uses In2.Cu, and
+The last four were cut from the date-label-printer rev B (four layers; only efuse-tps25947's copper
+uses In2.Cu, the others need just a ground plane under them), and
 their parts not in KiCad's libraries (the HUSB238, TPS259474L, PCF85063A and its crystal, the
 inductor) come from that board's own LCSC library, nickname `lp` (block.json `local_libs`).
 

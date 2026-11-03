@@ -7,7 +7,10 @@
 * pad): what matters on 3V3 is the EDLC's charging current (~23 mA when empty, tau 47 s), and on VRTC the hold-up.
 * c51/c51esr: the EDLC (0 ohm ESR is the heaviest 3V3 load; c51=1e-9 stands for "not fitted"); irtc: the RTC's backup
 * current (0 as in the source board's simulation; its datasheet: 0.50 uA max at 50 C, CLKOUT off); ileak: the EDLC's
-* own leakage (no generic coin cell guarantees one); both fold back below 0.5 V. Start C51 empty (uic) for plug-in.
+* own leakage (no generic coin cell guarantees one); both fold back below 0.5 V. Start C51 empty (uic) for plug-in:
+* VRTC reaches U9's 1.8 V I2C minimum ~67 s after plug-in at 0.47 F (80 s at +20 %) on this model. For a hold-up
+* run, start C51 at the guaranteed start voltage (3V3's DC minimum less 0.9 V: 2.33 V on the source board, e.g.
+* .ic v(<inst>.c51x)=2.33), NOT at the model's operating point (~2.85 V): DBAV170's VF sits below the maxima.
 .include ../models.inc
 .subckt rtc_pcf85063a 3v3 gnd scl sda params: k_r52=1 c51=0.47 c51esr=0 irtc=0 ileak=0
 R52 3v3 3v3_rtc {100*k_r52}

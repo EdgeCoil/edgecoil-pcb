@@ -111,6 +111,9 @@ Btm gnd tmr I = (V(isns,gnd) > {ilim} ? {iitimer/citimer} : -V(tmr,gnd)*1e3) * 1
 Ctm tmr gnd 1u
 Rtm tmr gnd 1e9
 * latch: set by timer expiry or by > 2 x ILIM for 500 ns; reset when EN < VSD
+* NOT MODELLED: after the fast trip the real part retries after a ~30 us de-glitch into current limit (ILIM) and stays
+* there until ITIMER expires or thermal shutdown, then latches (SLVSFC9C 7.3.5.4, Fig. 7-11). This model latches off at
+* the fast trip itself, so a hard output short's ILIM phase (up to ~16 ms with ITIMER 10 nF) is missing.
 Bft gnd ftc I = (V(isns,gnd) > {2*ilim} ? 2e6 : -V(ftc,gnd)*1e7) * 1u
 Cft ftc gnd 1u
 Rft ftc gnd 1e9
@@ -164,9 +167,11 @@ Bis gnd iset I = {iset_ua}*1e-6 * 0.5*(1+tanh((V(vin,gnd)-3)/0.1))
 .ends HUSB238
 
 * ---------------- 2N7002 (CJ C8545; guaranteed: VDS 60 V, VGS +-20 V abs max; VGS(th) 1.0-2.5 V at 250 uA;
-* RDS(on) <= 5 ohm at VGS 10 V, <= 7.5 ohm at 4.5 V ASSUMED as the usual 2N7002 table; Ciss <= 50 pF, Coss <= 25 pF,
-* Crss <= 5 pF) -- level 1, kp set so RDS(on) at VGS 4.5 V, Vth 2.5 V is 7.5 ohm (kp = 1/(7.5 x 2.0) = 0.067):
-* the weakest guaranteed device. Body diode S->D. Nodes d g s.
+* RDS(on) <= 5 ohm at VGS 10 V / 500 mA and <= 7 ohm at VGS 5 V / 50 mA (CJ's table; it has NO 4.5 V row); Ciss
+* <= 50 pF, Coss <= 25 pF, Crss <= 5 pF) -- level 1, kp set so RDS(on) at VGS 4.5 V, Vth 2.5 V is 7.5 ohm (kp =
+* 1/(7.5 x 2.0) = 0.067; the 7.5 ohm at 4.5 V is ASSUMED, the usual 2N7002 table, not CJ's). At VGS 5 V, Vth 2.5 V
+* this gives 6.0 ohm, slightly stronger than CJ's 7 ohm row; where it is used (a fail-safe pull-down sinking < 1 mA)
+* only the on/off state matters. Kept as sim3/sim4 ran it. Body diode S->D. Nodes d g s.
 .subckt N2N7002 d g s params: vth=1.75 kp=0.067
 M1 d g s s NM L=1u W=1u
 .model NM NMOS(LEVEL=1 VTO={vth} KP={kp} LAMBDA=0.01)
@@ -194,6 +199,9 @@ Rgs g s 1e12
 .ends NAO3400
 
 
-* BAV170, one element of the dual (rtc-pcf85063a uses one): low-leakage switching diode (silicon, not Schottky), VF fitted to Nexperia's maxima (0.9 V at 1 mA, 1.0 V at 10 mA, 1.1 V at 50 mA; curve shape ASSUMED);
-* reverse leakage (nA) not modelled.
+* BAV170, one element of the dual (rtc-pcf85063a uses one): low-leakage switching diode (silicon, not Schottky).
+* VF sits BETWEEN typical and Nexperia's maxima (0.9 V at 1 mA, 1.0 V at 10 mA, 1.1 V at 50 mA): the model gives
+* 0.80 / 0.93 / 1.05 V there, 0.04-0.10 V below them (curve shape ASSUMED). Conservative for charging current,
+* optimistic for hold-up (from 3.3 V at ~1 uA it settles VRTC at ~2.85 V): a hold-up run must start the EDLC at the
+* guaranteed start voltage, not at this model's operating point. Reverse leakage (nA) not modelled.
 .model DBAV170 D(IS=2e-10 N=2.0 RS=1.0 CJO=2p)

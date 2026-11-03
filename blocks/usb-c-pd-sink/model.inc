@@ -7,7 +7,9 @@
 * CC1, CC2, SDA and SCL (signals: ports only, no element here).
 * The request is the pins' voltage, 100 uA x the resistance there: VSET 1.400 V (14.0k, the 15 V code), ISET 2.00 V
 * (20.0k, between the 2.75 A code 1.96 V and the 3 A code 2.26 V).
-* cink: C20's tolerance x temperature multiplier (0.8-1.1 in the Monte Carlo); vop_bus: its DC-bias point, the
+* C20 is Samsung CL21A225KBQNNNE; its DC-bias curve (v0, m) is ASSUMED (Samsung publishes none for it): 0.99 uF at
+* 15 V, 1.85 uF at 5 V. No copper here: the source board's R/L (four-layer) are in its sim, not in this model.
+* cink: C20's tolerance x temperature multiplier (0.8-1.1 in the Monte Carlo; the guaranteed band is 0.765-1.265); vop_bus: its DC-bias point, the
 * contract voltage (5, 12 or 15 V; 15 by default); k_r20/k_r21/k_r22: resistor tolerance; iset_ua: the pins'
 * source current (+-5 %).
 .include ../models.inc

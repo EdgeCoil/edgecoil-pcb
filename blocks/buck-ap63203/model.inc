@@ -10,6 +10,8 @@
 * (ASSUMED, crossover ~fsw/20; between the 'slow' gp 4 / wi 2e5 and 'nom' 9 / 6e5 fits); cink (C40, C41 tolerance x
 * temperature, 0.80-1.10) and vop_bus (their DC-bias point: 5 V before a contract, 12 or 15 V after; 15 V the
 * default, rev B's contract); cok (C43, C44: 0.72-1.20).
+* U5's UVLO is the model's typical 3.5 V rising / 0.44 V hysteresis (guaranteed rising 3.3-3.7 V), and its dropout is
+* ignored: neither matters above the 4.44 V minimum simulated.
 * C40's DC-bias curve (c0 4.7u, v0 19.2, m 1.63: 0.89x at 5 V, 0.60x at 15 V) is ASSUMED, as in the source board.
 .include ../models.inc
 .subckt buck_ap63203 3v3 gnd vbus params: vref=3.3 gp=9 wi=6e5 ilim_b=2.5 cink=1 cok=1 vop_bus=15

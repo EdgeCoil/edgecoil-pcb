@@ -17,7 +17,9 @@ joins block to block, so a new board's review covers the joins and whatever is n
 The last four were cut from the date-label-printer rev B (four layers; only efuse-tps25947's copper
 uses In2.Cu, the others need just a ground plane under them), and
 their parts not in KiCad's libraries (the HUSB238, TPS259474L, PCF85063A and its crystal, the
-inductor) come from that board's own LCSC library, nickname `lp` (block.json `local_libs`).
+inductor) come from that board's own LCSC library, nickname `lp` (block.json `local_libs`). Every simulated figure
+their FINDINGS cite is in that board's committed `sim/results/sim4/`, traced to file and line in
+`block-figures-<block>.txt` there.
 
 Each directory holds:
 
@@ -102,9 +104,9 @@ repeatable:
    flat, as in the board simulation the device models were validated in: they agree to 1e-12 (the
    buck's input current to 1 µA: two copies of its averaged loop, even two of the block itself, cross
    a comparison a time step apart). Each case carries a planted error in a copy of its model.inc,
-   which the run must catch: R6 10k → 11k, C4 22u → 10u, R21 14.0k → 14.7k, R26 10k → 11k,
+   which the run must catch: R6 10k → 11k, C4 22u → 10u, R22 1k → 2k, R26 10k → 11k,
    C43 22u → 10u, R52 100 → 1k. This checks wiring and parameters; the physics was validated in those
    simulations (behavioural models fitted to guaranteed datasheet figures, the plug-in corners lumped
-   and on copper, 200 × 8 and 200 × 9 Monte Carlo). The date-label-printer's device models are in
+   and on copper, 200 × 8, 200 × 9 and, for the rev B cut, 200 × 23 Monte Carlo). The date-label-printer's device models are in
    [`models.inc`](models.inc) with their ground made a pin; renamed (ngspice takes a node called
    `gnd` as ground) and held 2 V above node 0, they match the originals (to 1e-10 V; the buck to 1 µV).

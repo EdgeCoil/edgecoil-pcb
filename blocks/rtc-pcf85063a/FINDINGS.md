@@ -3,7 +3,7 @@
 Anchor U9. **Copper extent: x −11.25 … 2.10 mm, y −4.50 … 6.15 mm**, to the copper's edges (tracks and vias with their widths; parts' pads and courtyards reach further) from U9.
 C51's pads and cell reach beyond it (below). Cut from the date-label-printer at **rev B** (board 92af546:
 re-placed and re-routed to answer this block's rev A review, re-audited in rounds 5–7 to CLEAN, ERC/DRC
-clean; post-layout simulation with routed copper and a 200 × 23 Monte Carlo, "sim4", PASS). All of the
+clean; post-layout simulation with routed copper and a 200 × 24 Monte Carlo, "sim4", PASS). All of the
 block's copper is on F.Cu (18 items, 5 GND vias down to the ground plane); rev A's VRTC run on In2 is gone.
 
 Datasheets cited: **NXP PCF85063A Rev. 7.3** (14 July 2026), **Seiko SC-32S** (the LCSC C97604 sheet),
@@ -51,7 +51,7 @@ The sum, for whoever fits a cell and measures it. Assumptions, all stated:
 - **Start voltage, in board terms: ΔV = (3V3's minimum − 0.9 V) − 0.9 V.** The first 0.9 V is D2's
   only guaranteed drop (VF ≤ 0.9 V at 1 mA), the second the RTC's timekeeping minimum. 3V3's minimum here
   is the lowest it may sit at when power fails: on the source board, **3.211 V**, sim4's minimum with
-  routed copper (sim4's minimum with routed copper: Wi-Fi bursts 3.2109 V at a fixed corner, printing 3.2112 V in the Monte Carlo; idle, the buck holds 3.27–3.33 V, so this is the
+  routed copper (sim4's minimum with routed copper: Wi-Fi bursts 3.2109 V at a fixed corner, printing 3.2111 V in the Monte Carlo (12 V set; 3.2112 V at 15 V); idle, the buck holds 3.27–3.33 V, so this is the
   conservative choice). Start **≥ 2.31 V**, **ΔV ≈ 1.41 V**. Typically it starts near 2.8 V (ΔV ≈ 1.9 V).
 - **Capacitance** at −20 % (0.376 F), new, **fully charged** (see the last point).
 
@@ -239,3 +239,8 @@ NOT CLEAN: 0 / 1 / 2, all applied: two stale rows in the source board's rev B re
 
 NOT CLEAN: 0 / 1 / 2, all applied: round 3's "printing 3.214 V" was a sim3 figure (sim4 printing reaches
 3.2112 V, Wi-Fi 3.2109 V); the source board's DBAV170 comment and the charge deck's VF-gap wording aligned.
+
+## Independent review round 5 (rev B cut)
+
+NOT CLEAN: 0 / 0 / 1 suggestion, applied (the printing minimum is 3.2111 V, the 12 V set). With no blocker
+or should-fix left and every suggestion applied or declined, the block meets the review's definition of done.

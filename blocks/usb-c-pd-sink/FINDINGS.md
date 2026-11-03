@@ -2,7 +2,7 @@
 
 Anchor U3. **Copper extent: x −3.59 … 0.40 mm, y −8.55 … 1.54 mm**, to the copper's edges (tracks and vias
 with their widths; parts' pads and courtyards reach further) from U3. Cut from the date-label-printer **rev B**
-(board 92af546: DFM audit CLEAN at round 8; post-layout simulation with routed copper and a 200 × 23 Monte
+(board 92af546: DFM audit CLEAN at round 8; post-layout simulation with routed copper and a 200 × 24 Monte
 Carlo, "sim4", PASS with no board change). **The block's own copper is on F.Cu only** (its three vias are
 ground vias), so block.json asks for no inner layers. **But the source board is four-layer, with In1 a solid
 ground plane**, and every copper, inductance and ring figure below was extracted or simulated on that stackup
@@ -218,3 +218,9 @@ NOT CLEAN: 0 / 1 / 2, all applied: the worst source peak is the 12 V Monte Carlo
 NOT CLEAN: 0 / 1 / 1, both applied. The Monte Carlo had not run the 12 V fallback's worst fixed corner
 (11.4 V, stiff); it was added (`p12_lo_st`, 200 + 200 runs, all pass): worst source peak 2.625 A, margins
 ≈ 0.13 / 0.38 A. The 22 / 19 mm distances are labelled straight-line.
+
+## Independent review round 5 (rev B cut)
+
+NOT CLEAN: 0 / 1 / 0, applied: the Monte Carlo was 22 sets (4,400 runs), now 24 with the 12 V corner
+(4,800 runs); every print corner checked, none above the quoted 2.62 A. With no blocker or should-fix left,
+the block meets the review's definition of done.

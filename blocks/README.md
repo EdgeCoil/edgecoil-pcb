@@ -107,6 +107,6 @@ repeatable:
    which the run must catch: R6 10k → 11k, C4 22u → 10u, R22 1k → 2k, R26 10k → 11k,
    C43 22u → 10u, R52 100 → 1k. This checks wiring and parameters; the physics was validated in those
    simulations (behavioural models fitted to guaranteed datasheet figures, the plug-in corners lumped
-   and on copper, 200 × 8, 200 × 9 and, for the rev B cut, 200 × 23 Monte Carlo). The date-label-printer's device models are in
+   and on copper, 200 × 8, 200 × 9 and, for the rev B cut, 200 × 24 Monte Carlo). The date-label-printer's device models are in
    [`models.inc`](models.inc) with their ground made a pin; renamed (ngspice takes a node called
    `gnd` as ground) and held 2 V above node 0, they match the originals (to 1e-10 V; the buck to 1 µV).

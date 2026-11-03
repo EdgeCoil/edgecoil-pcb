@@ -3,7 +3,7 @@
 Anchor U4. **Copper extent: x −12.70 … 7.33 mm, y −7.93 … 6.05 mm**, to the copper's edges (tracks and vias with
 their widths; parts' pads and courtyards reach further) from U4. Cut from the date-label-printer at **rev B** (board
 92af546: re-placed and re-routed after the review of the rev A cut below; DFM audit rounds 5–8, CLEAN at round 8;
-post-layout simulation with routed copper and a 200 × 23 Monte Carlo, "sim4", PASS). 88 copper items, 15 of them
+post-layout simulation with routed copper and a 200 × 24 Monte Carlo, "sim4", PASS). 88 copper items, 15 of them
 vias; four layers: two EN tracks run on In2 and one VBUS link on B.Cu.
 
 ## What is in it, and what is not

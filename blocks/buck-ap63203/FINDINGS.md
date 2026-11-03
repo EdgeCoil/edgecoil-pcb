@@ -2,7 +2,7 @@
 
 Anchor U5. **Copper extent: x −1.83 … 9.95 mm, y −2.65 … 6.70 mm**, to the copper's edges (tracks and vias with their
 widths; parts' pads and courtyards reach further) from U5. **Rev B**: cut from the date-label-printer at rev B (board
-92af546: eight DFM audit rounds, CLEAN; post-layout simulation with routed copper and a 200 × 23 Monte Carlo, "sim4").
+92af546: eight DFM audit rounds, CLEAN; post-layout simulation with routed copper and a 200 × 24 Monte Carlo, "sim4").
 Rev A's cut (6f36126) was replaced: its review's layout findings are what rev B changed (last section).
 All the block's copper is on F.Cu, plus five GND vias: it no longer uses In2 or B.Cu, but its vias need a ground plane
 (In1 on the source board, which stays four-layer).

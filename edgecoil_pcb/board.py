@@ -324,7 +324,7 @@ def write_board(cfg, name, parts, h, keepouts, silk, extras, path, root):
             if len(item) > 4:
                 t.SetTextAngleDegrees(item[4])
             board.Add(t)
-    default = cfg.back_text(name, w, h) if cfg.back_text else [(w / 2, h - 6.0, f"{name}\nrev A", 1.0)]
+    default = cfg.back_text(name, w, h) if cfg.back_text else [(w / 2, h - 6.0, f"{name}\nrev {cfg.revision}", 1.0)]
     back_text = extras.get("back_text", default)
     for x, y, text, size in back_text:
         t = pcbnew.PCB_TEXT(board)
@@ -373,7 +373,7 @@ def write_board(cfg, name, parts, h, keepouts, silk, extras, path, root):
         trim_silk(board, w, h, order_free=cfg.order_free_silk)
     if cfg.title_block:
         tb = board.GetTitleBlock()
-        tb.SetTitle(name); tb.SetRevision("A")
+        tb.SetTitle(name); tb.SetRevision(cfg.revision)
     place_labels(cfg, board, w, h, extras.get("notch"), extras.get("label_margin", 0.25), vias)
     # No via under a part label or front text (BOOT, the JLC mark...) either: a via cap breaks up
     # 1 mm text.

@@ -67,7 +67,8 @@ class Config:
     solid_pads: tuple = ()
     logo_svg: Optional[str] = None         # the board supplies its own mark; the toolkit ships none
     trim_silk: bool = True                 # clear footprint silk off pads and the edge (cec-bridge)
-    title_block: bool = True               # board title block: variant name, rev A
+    title_block: bool = True               # board title block: variant name and revision
+    revision: str = "A"                    # the title block's revision (and the default back text's)
     labels_avoid_marks: bool = True        # labels keep off footprints' own silk marks
     labels_avoid_own_outline: bool = True  # and off their own part's outline
     keycap: float = 18.0                   # a 1u MX keycap's square, which labels keep out of

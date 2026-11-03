@@ -83,11 +83,11 @@ Rst st gnd 1e9
 *   scaled here by idvdt/2.21u. 474x restarts with dVdt after OVLO (Fig 7-7), unlike 470x.
 * Circuit breaker (474x): IOUT > ILIM starts ITIMER discharge (1.8 uA typ, 1.2..2.5) of CITIMER from ~2.57 V
 *   through dV 1.51 V (1.286..1.741); expiry -> off, latched (L variant) until EN < VSD(F) (0.45 V) or IN cycled.
-*   Fast trip at 2 x ILIM (scalable) after 500 ns (tFT is for IFT; ASSUMED the same for the scalable trip).
+*   Fast trip at 2 x ILIM (scalable) after 500 ns: SLVSFC9C 6.6 gives tSC = 500 ns for the scalable fast trip (at
+*   IOUT > 3 x ILIM); the model's 2 x threshold is kept as sim3/sim4 ran it.
 * ILIM = 3340/RILM A typ (1.65 k -> 2.028, 750 -> 4.452 A); min x0.888, max x1.087 (Table 6.5 rows).
-* tOVLO: ASSUMED 5 us (tOVC is 5 us; the OVLO time is in the switching table).
-*   (Kept as sim3 and sim4 ran it. The datasheet's timing table gives tOVLO 1.2 us typ: the model cuts later, the
-*   pessimistic side.)
+* tOVLO: ASSUMED 5 us. (Kept as sim3 and sim4 ran it. SLVSFC9C 6.6 Timing Requirements gives tOVLO 1.2 us typ:
+*   the model cuts later, the pessimistic side.)
 .subckt TPS259474 in out en ovlo gnd params: ron=0.0282 ilim=3.34 idvdt=2.21u cdvdt=3.3n citimer=10n iitimer=1.8u dvit=1.51
 + ven_r=1.20 ven_f=1.09 vov_r=1.20 vov_f=1.09
 Xen en enst gnd SCHMITT vr={ven_r} vf={ven_f}
@@ -111,9 +111,11 @@ Btm gnd tmr I = (V(isns,gnd) > {ilim} ? {iitimer/citimer} : -V(tmr,gnd)*1e3) * 1
 Ctm tmr gnd 1u
 Rtm tmr gnd 1e9
 * latch: set by timer expiry or by > 2 x ILIM for 500 ns; reset when EN < VSD
-* NOT MODELLED: after the fast trip the real part retries after a ~30 us de-glitch into current limit (ILIM) and stays
-* there until ITIMER expires or thermal shutdown, then latches (SLVSFC9C 7.3.5.4, Fig. 7-11). This model latches off at
-* the fast trip itself, so a hard output short's ILIM phase (up to ~16 ms with ITIMER 10 nF) is missing.
+* NOT MODELLED: after the fast trip the real part retries after a ~30 us de-glitch into current limit, and a persistent
+* short stays there until thermal shutdown (SLVSFC9C 7.3.5.4, Fig. 7-11); the limit folds back below VOUT < VFB (1.9 V
+* typ) to an unspecified lower level (7.3.5.3 note 2), and on the 474x ITIMER discharges only while IOUT > ILIM
+* (7.3.5.2), so ITIMER need not end it. This model latches off at the fast trip itself, so a hard output short's
+* current-limit phase (<= ILIM, until thermal shutdown) is missing.
 Bft gnd ftc I = (V(isns,gnd) > {2*ilim} ? 2e6 : -V(ftc,gnd)*1e7) * 1u
 Cft ftc gnd 1u
 Rft ftc gnd 1e9
@@ -201,7 +203,7 @@ Rgs g s 1e12
 
 * BAV170, one element of the dual (rtc-pcf85063a uses one): low-leakage switching diode (silicon, not Schottky).
 * VF sits BETWEEN typical and Nexperia's maxima (0.9 V at 1 mA, 1.0 V at 10 mA, 1.1 V at 50 mA): the model gives
-* 0.80 / 0.93 / 1.05 V there, 0.04-0.10 V below them (curve shape ASSUMED). Conservative for charging current,
+* 0.80 / 0.93 / 1.05 V there, 0.05-0.10 V below them (curve shape ASSUMED). Conservative for charging current,
 * optimistic for hold-up (from 3.3 V at ~1 uA it settles VRTC at ~2.85 V): a hold-up run must start the EDLC at the
 * guaranteed start voltage, not at this model's operating point. Reverse leakage (nA) not modelled.
 .model DBAV170 D(IS=2e-10 N=2.0 RS=1.0 CJO=2p)

@@ -70,9 +70,9 @@ reusing this block for anything new.**
 - **The request, measured in simulation** (source board s0): VSET 1.400 V, ISET 2.00 V at every contract.
 - **It asks for ≥ 2.75 A at 15 V.** A source whose 15 V PDO offers less (a 30 W, 15 V 2 A charger) is
   not taken at 15 V: the _002 takes **the next lower PDO that offers the ISET current**, down to 5 V.
-  The source board's printer draws source peaks of **≈ 2.60 A** at worst (sim4 Monte Carlo at 15 V:
-  2.598 A lumped, 2.591 A on copper; the 12 V fallback's fixed corners 2.600 A), **≈ 0.15 A below the
-  2.75 A code and ≈ 0.40 A below a 3 A contract**.
+  The source board's printer draws source peaks of **≈ 2.61 A** at worst (sim4 Monte Carlo: at the
+  12 V fallback 2.612 A lumped / 2.607 A on copper (R only); at 15 V 2.598 / 2.591 A), **≈ 0.14 A below
+  the 2.75 A code and ≈ 0.39 A below a 3 A contract**.
 - **On a PDO mismatch the _002 takes the next lower PDO**, down to 5 V. Whatever this block feeds must
   tolerate 5, 9 and 12 V or refuse them in hardware (the source board: the eFuse's UVLO divider, on above
   9.87–10.59 V, so off at 5 and 9 V and on at 12 and 15 V).
@@ -186,7 +186,7 @@ board's REQUIREMENTS, *Rev B*) is that revision; this block is re-cut from it.
 |---|---|---|
 | 1 | R20 (ISET) and R21 (VSET) on the wrong sides of U3; ISET crossed 4.8 mm under the exposed pad on In2 through two vias (9.9 mm on its node), making the block four-layer | **Resolved.** R20 sits beyond pin 9 and R21 + R22 beyond pin 8, all on F.Cu; ISET is 1.8 mm and VSET 1.4 mm. The block's copper needs no inner layer (its figures are still four-layer: header) |
 | 2 | C20 1.8 mm (pad edge) / 2.7 mm (track) from VIN; its ground loop closed only through the pour; the review asked for 2–4 vias in the exposed pad once In2 was clear | **Resolved, except the pad vias.** C20 at 90° left of pin 1, 1.23 mm of track to VIN (0.48 nH); its ground on a 0.4 mm locked track into the exposed pad (0.24 nH) and its own via. **Still open, declined:** no via in the exposed pad, because CC2 runs on In2 under it on the source board (above); the board's job covers a board that is clear there |
-| 3 | ISET 2 A against a 3 A charger | **Resolved.** ISET 20.0 kΩ: 2.75 or 3 A on guaranteed figures, ≈ 0.15 A above the printer's ≈ 2.60 A worst source peak |
+| 3 | ISET 2 A against a 3 A charger | **Resolved.** ISET 20.0 kΩ: 2.75 or 3 A on guaranteed figures, ≈ 0.14 A above the printer's ≈ 2.61 A worst source peak (12 V MC) |
 | 4 | The interruption ring at 15 V was not simulated (hand estimate 20–25 V) | **Resolved on the source board** (s8, four-layer copper): 16.31 V on an enable cut, 21.20 V after a hard short (Monte Carlo worst 22.41 V copper, 23.63 V lumped). A different board must still judge its own (board's job) |
 | 5 | No system-level ESD on CC1/CC2 | **Open, as a decision.** The source board declined a discrete CC TVS (P8); integrated port protectors were not evaluated (next revision); the board's job keeps it |
 | 6 | R20's ground pad had no block copper | **Resolved.** R20's ground runs 1.1 mm to its own via |
@@ -206,3 +206,8 @@ listed under *Datasheet not on file*. **Declined:** putting C20's MPN into block
 by a re-cut; the MPN is in this file and in model.inc. Round 1 (5 should-fix, 6 suggestions) added the
 stackup caveat, the exposed-pad reasoning, C20's band and next-revision part, the VSET-open fault, the
 temperature term, the parts table and the datasheet note.
+
+## Independent review round 3 (rev B cut)
+
+NOT CLEAN: 0 / 1 / 2, all applied: the worst source peak is the 12 V Monte Carlo's (≈ 2.61 A; margins
+≈ 0.14 / 0.39 A), "copper" for print checks labelled R only, and a stale path in the source board's trace file.

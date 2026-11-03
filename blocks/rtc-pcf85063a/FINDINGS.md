@@ -51,7 +51,7 @@ The sum, for whoever fits a cell and measures it. Assumptions, all stated:
 - **Start voltage, in board terms: ΔV = (3V3's minimum − 0.9 V) − 0.9 V.** The first 0.9 V is D2's
   only guaranteed drop (VF ≤ 0.9 V at 1 mA), the second the RTC's timekeeping minimum. 3V3's minimum here
   is the lowest it may sit at when power fails: on the source board, **3.211 V**, sim4's minimum with
-  routed copper (while printing and in Wi-Fi bursts; idle, the buck holds 3.27–3.33 V, so this is the
+  routed copper (the Wi-Fi-burst minimum; printing with copper is 3.214 V; idle, the buck holds 3.27–3.33 V, so this is the
   conservative choice). Start **≥ 2.31 V**, **ΔV ≈ 1.41 V**. Typically it starts near 2.8 V (ΔV ≈ 1.9 V).
 - **Capacitance** at −20 % (0.376 F), new, **fully charged** (see the last point).
 
@@ -69,7 +69,7 @@ The sum, for whoever fits a cell and measures it. Assumptions, all stated:
   figure. Give it a few minutes powered for a useful charge; measure the hold-up after a long powered
   spell, or its decay rate over a day and redo the sum above.
 - **A simulated hold-up must start C51 at the guaranteed start voltage** (`.ic`, 2.31 V here), not at the model's
-  operating point: the DBAV170 model's VF sits 0.04–0.10 V below the BAV170's maxima, so from 3.3 V it
+  operating point: the DBAV170 model's VF sits 0.05–0.10 V below the BAV170's maxima, so from 3.3 V it
   settles VRTC at ~2.85 V, which flatters the hold-up (`model.inc`).
 
 ## Power-up: the RTC is unreachable for the first minute or so with C51 empty
@@ -230,3 +230,7 @@ NOT CLEAN: 0 blockers, 2 should-fix, 2 suggestions.
 | S2 | The figure trace pointed at uncommitted decks with absolute paths | **Fixed**: the decks and outputs sit with the source board's sim4 results, with relative includes (the block's few lines inlined) |
 | G1 | "3V3's DC minimum 3.23 V" named the wrong quantity | **Fixed**: the start uses sim4's copper minimum, 3.211 V, named as such: 2.31 V, ΔV 1.41 V, 4.96 µA allowance |
 | G2 | Source-board record | Fixed at the source board |
+
+## Independent review round 3 (rev B cut)
+
+NOT CLEAN: 0 / 1 / 2, all applied: two stale rows in the source board's rev B response table (F12 polling; Y1's 2.45 mm traces), the model's VF gap 0.05–0.10 V, the 3.211 V attribution (Wi-Fi bursts), and R6 no longer "open" in the part row.

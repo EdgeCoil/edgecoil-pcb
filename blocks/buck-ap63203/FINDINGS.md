@@ -68,13 +68,13 @@ p-p and ~0.8 A rms at 2 A; estimates, not simulated). So a requirement of **0.5 
 
 | What | Worst | Limit | Margin |
 |---|---|---|---|
-| 3V3 under 345 mA Wi-Fi bursts, 4.75 V source on a 2 m thin cable (MC) | 3.225 / **3.212 V** min; 3.372 / 3.369 V max | 3.0 / 3.6 V | 0.21 / 0.23 V |
+| 3V3 under 345 mA Wi-Fi bursts at a 4.75 V source (fixed corners + MC; the min is the fixed 0.3 m corner, RESULTS sim4 s3) | 3.224 / **3.211 V** min; 3.372 / 3.369 V max | 3.0 / 3.6 V | 0.21 / 0.23 V |
 | 3V3 while printing at 15 V (2.5 A strobes from VBUS; MC, 4 sets) | 3.225 / **3.211 V** | 3.0 V | 0.21 V |
 | 3V3 while printing at the 12 V fallback (MC, 2 sets) | 3.227 / 3.211 V | 3.0 V | 0.21 V |
 | 3V3 through a hard short downstream (VBUS ringing to 22–24 V; MC) | 3.231 / 3.216 V | 3.0 V | 0.22 V |
 | 3V3 peak at plug-in (fixed) | 3.304 / 3.303 V | 3.6 V | 0.30 V |
 | 3V3 during a 28 V source fault (fixed) | 3.322 / 3.318 V | 3.6 V | 0.28 V |
-| Buck VIN min while printing: 15 V / 12 V contracts, 2 m cable (MC) | 13.30 / 10.43 V | UVLO 3.7 V max | 9.6 / 6.7 V |
+| Buck VIN min while printing: 15 V / 12 V contracts, in-spec 2 m cable (MC); thin-cable fixed corners in the next row | 13.30 / 10.43 V (≈ 12.0 / 9.1 V on the thin cable) | UVLO 3.7 V max | 9.6 / 6.7 V (≈ 8.3 / 5.4 V thin) |
 | VBUS min, thin cable: 4.75 V Wi-Fi / 12 V print / 15 V print (fixed) | 4.44 / 9.15 / 12.03 V | UVLO 3.7 V max; dropout | 0.74 V; ~1.1 V headroom over 3.3 V at 4.44 V |
 | **Input, abs max: VBUS worst**: source fault (fixed) / hard-short ring (MC lumped, copper) | 28.0 V (bench ceiling) / 23.63, 22.41 V | U5 32 V operating, 35 V absolute; C40, C41 50 V | **4.0 / 7.0 V**; 8.4, 9.6 V to 32 V |
 
@@ -155,7 +155,7 @@ the datasheet's suggested 22 µF (see *Accepted*).
 
 Rev A's block was reviewed once, independently (NOT CLEAN: 1 blocker, 5 should-fix, 4 suggestions); its layout
 findings were declined in that cut and recorded for the next revision. Rev B is that revision. Rev B's block has had
-one independent review round (NOT CLEAN: 0 blockers, 5 should-fix, 5 suggestions), answered in this file: row 3
+three independent review rounds (round 1 NOT CLEAN: 0 blockers, 5 should-fix, 5 suggestions; rounds 2 and 3 below), answered in this file: row 3
 below, the output capacitance, the current rating against 0.5 A, U5's input limits, L1 under a short, the droop
 bound, the 28 V bench ceiling and the model's UVLO.
 
@@ -179,3 +179,8 @@ citation in the shared `models.inc` corrected to Diodes DS41326 Rev 3-2; C40's 5
 model's own 0.90x, C41 → U5 as 1.9 mΩ (the source board's extraction: 1.86 mΩ), and the droop bound taken at the
 guaranteed worst 18.5 µF (ΔV ≈ 138 mV, 3V3 ≥ ~3.12 V); C43/C44's ground stubs and single vias recorded for the next
 revision (*Accepted*).
+
+## Independent review round 3 (rev B cut)
+
+NOT CLEAN: 0 / 0 / 3 suggestions, all applied: the Wi-Fi row's minimum from the fixed 0.3 m corner (3.224 / 3.211 V),
+the buck-VIN row labelled in-spec cable with the thin-cable margins (≈ 8.3 / 5.4 V), and the review count.

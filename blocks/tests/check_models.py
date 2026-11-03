@@ -137,6 +137,9 @@ RlA vpoA 0 20
 RlB vpoB 0 20
 ClA vpoA 0 100u
 ClB vpoB 0 100u""",
+        # Two copies in one matrix agree to ~2e-11 A on ngspice 44 and ~1.1e-9 A in 1.1 A on CI's packaged ngspice
+        # (solver noise); the planted R26 error moves this current by 0.79 A. Held to 1e-7 A.
+        tol_i=1e-7,
         tran="1u 120m", compare=["v(vpoA) v(vpoB)", "v(xa.efuse_en) v(efuse_enB)", "v(xa.ovlo) v(ovlB)",
                                  "v(xa.q1_g) v(q1_gB)", "i(VsA) i(VsB)"],
         planted=("R26 10k -> 11k (OVLO 19.2 -> 17.6 V)", "R26 ovlo gnd {10000*k_r26}", "R26 ovlo gnd {11000*k_r26}")),
